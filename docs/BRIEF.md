@@ -21,7 +21,7 @@ These are settled, so please quote against them.
 
 ## 1. Hosting and code ownership
 
-- Code lives in the repository **`appsdaeng/telagawajarafting`** — <https://github.com/appsdaeng/telagawajarafting> — which I own. It already exists and is empty; the developer is added as a **collaborator**. Do not fork it into a personal account, and do not host the canonical repository anywhere else.
+- Code lives in the repository **`appsdaeng/telagawajarafting`** — <https://github.com/appsdaeng/telagawajarafting> — which I own. It already exists and contains this brief, the README and the env template; the developer is added as a **collaborator**. Do not fork it into a personal account, and do not host the canonical repository anywhere else.
 - First commit is `main` with the README, `.gitignore` and `.env.example`; create a `develop` branch from it and open pull requests into `main`.
 - Production deploys on **Vercel under my Vercel account**. The repo is connected to Vercel so **every push to `main` deploys automatically**.
 - Work happens on a `develop` branch and/or **Vercel preview deployments**; `main` is production and must stay deployable.
