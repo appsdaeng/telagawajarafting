@@ -107,6 +107,31 @@ export function formatRupiah(amount: number): string {
 }
 
 /**
+ * Turn NEXT_PUBLIC_SITE_URL into something `new URL()` accepts.
+ *
+ * Environment variables are typed by humans: a bare domain such as
+ * `www.example.com` has no scheme, and `new URL()` throws on it during the
+ * production build (it would otherwise crash every page through metadataBase).
+ * Accept a missing scheme, a trailing slash or a stray path, and fall back to
+ * localhost rather than failing the build.
+ */
+function normalizeSiteUrl(raw: string | undefined): string {
+  const value = raw?.trim();
+
+  if (!value) {
+    return "http://localhost:3000";
+  }
+
+  const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    return new URL(withScheme).origin;
+  } catch {
+    return "http://localhost:3000";
+  }
+}
+
+/**
  * Public, non-secret configuration. Both values are placeholders until the
  * real number and domain are set in Vercel → Settings → Environment Variables.
  */
@@ -114,7 +139,7 @@ export const siteConfig = {
   name: "Telaga Waja Rafting",
   location: "Rendang, Karangasem, Bali",
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "6281234567890",
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  siteUrl: normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
 };
 
 /** Build a wa.me deep link with a pre-filled enquiry message. */
