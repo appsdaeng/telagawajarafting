@@ -132,13 +132,25 @@ function normalizeSiteUrl(raw: string | undefined): string {
 }
 
 /**
+ * Reduce a human-typed phone number to the digits-only international form wa.me
+ * expects. `+62 812-3456-7890` and the local `0812-3456-7890` both become
+ * `6281234567890`; anything too short falls back to the placeholder.
+ */
+function normalizeWhatsAppNumber(raw: string | undefined): string {
+  const digits = raw?.replace(/\D/g, "") ?? "";
+  const international = digits.startsWith("0") ? `62${digits.slice(1)}` : digits;
+
+  return international.length >= 8 ? international : "6281234567890";
+}
+
+/**
  * Public, non-secret configuration. Both values are placeholders until the
  * real number and domain are set in Vercel → Settings → Environment Variables.
  */
 export const siteConfig = {
   name: "Telaga Waja Rafting",
   location: "Rendang, Karangasem, Bali",
-  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "6281234567890",
+  whatsappNumber: normalizeWhatsAppNumber(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER),
   siteUrl: normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
 };
 
