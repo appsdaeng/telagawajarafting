@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* River — the primary brand colour */
+  --color-river-50: #edfafa;
+  --color-river-100: #d3f2f2;
+  --color-river-200: #a9e6e7;
+  --color-river-300: #74d3d6;
+  --color-river-400: #3fb8bd;
+  --color-river-500: #269ba2;
+  --color-river-600: #1c7c86;
+  --color-river-700: #1a636c;
+  --color-river-800: #1a5057;
+  --color-river-900: #123a40;
+  --color-river-950: #08262b;
+
+  /* Sand — warm accent for highlights and pricing */
+  --color-sand-50: #fdf9ed;
+  --color-sand-100: #f8efc9;
+  --color-sand-200: #f0dc92;
+  --color-sand-300: #e7c45c;
+  --color-sand-400: #e0ad37;
+  --color-sand-500: #c98f21;
+  --color-sand-600: #a66d19;
+  --color-sand-700: #854f18;
+  --color-sand-800: #6f401a;
+  --color-sand-900: #5e361a;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-white);
+  color: var(--color-river-950);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Wider than the default container: the site reads better at this width. */
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 72rem;
+  padding-inline: 1.25rem;
+}
+
+@utility text-balance-tight {
+  text-wrap: balance;
+}
