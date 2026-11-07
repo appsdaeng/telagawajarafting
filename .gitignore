@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+.vercel/
+
+# Environment — never commit real values
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# Secrets and generated credentials
+*.pem
+*.key
+
+# Uploads must never live in the repo (hosted object storage only)
+public/uploads/
+uploads/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+prisma/migrations/dev.db*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Test and coverage output
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Editor and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
