@@ -18,7 +18,8 @@ export default function ContactPage() {
         </h1>
         <p className="mt-4 leading-relaxed text-river-800">
           WhatsApp is the fastest way to reach us — we reply with availability and your pickup
-          time. There is no online payment: you pay at the counter on the day of your run.
+          time. Payment comes after confirmation: card, QRIS, e-wallet, PayPal or cash at base
+          camp, whichever suits you.
         </p>
       </header>
 
