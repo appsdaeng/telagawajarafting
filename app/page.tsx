@@ -59,7 +59,7 @@ export default function HomePage() {
           </p>
 
           <h1 className="mt-5 max-w-3xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance-tight sm:text-5xl lg:text-6xl">
-            Telaga Waja Rafting in Bali — Bali&apos;s longest run.
+            Telaga Waja Rafting in Bali — the island&apos;s longest run.
           </h1>
 
           <p className="mt-5 max-w-xl text-base leading-relaxed text-river-100 sm:text-lg">
