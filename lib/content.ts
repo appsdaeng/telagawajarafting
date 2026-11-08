@@ -8,7 +8,6 @@
  */
 
 export type TrustPoint = { title: string; body: string };
-
 export const trustPoints: TrustPoint[] = [
   {
     title: "Certified river guides",
@@ -27,8 +26,34 @@ export const trustPoints: TrustPoint[] = [
     body: "Cancel at no cost up to 48 hours before your departure.",
   },
   {
-    title: "Pay on the day",
-    body: "No prepayment needed — settle in cash or by card at base camp.",
+    title: "Easy payment",
+    body: "Card, QRIS, e-wallet, PayPal or cash at base camp.",
+  },
+];
+
+export type PaymentMethod = {
+  label: string;
+  detail: string;
+  /**
+   * Cash on arrival only works for guests who drive themselves to the starting
+   * point. Pickup bookings are collected first, so they need to be paid before
+   * the driver leaves — the card is never left to chance.
+   */
+  venueOnly?: boolean;
+};
+
+/** Payment methods the operator accepts, in the order they should be shown. */
+export const paymentMethods: PaymentMethod[] = [
+  { label: "Visa & Mastercard", detail: "Debit or credit, chip or contactless" },
+  { label: "QRIS", detail: "Scan with any Indonesian bank or e-wallet app" },
+  { label: "E-wallet", detail: "GoPay, OVO, DANA and ShopeePay" },
+  { label: "PayPal", detail: "For guests paying from overseas" },
+  { label: "Google Pay", detail: "Tap to pay from an Android phone" },
+  { label: "Apple Pay", detail: "Tap to pay from an iPhone or Apple Watch" },
+  {
+    label: "Cash at base camp",
+    detail: "Indonesian rupiah, on arrival",
+    venueOnly: true,
   },
 ];
 
@@ -107,7 +132,7 @@ export const faqs: Faq[] = [
   {
     question: "How do I pay?",
     answer:
-      "You pay at base camp on the day of your trip, in Indonesian rupiah, by cash or card. There is no prepayment and no card details are taken online. If you are booking for a group of ten or more we may ask for a deposit, which we will explain on WhatsApp before you commit.",
+      "Nothing is charged when you send the booking form. Once we confirm your spots we send the payment details on WhatsApp, and you choose the method: Visa or Mastercard, QRIS, e-wallet (GoPay, OVO, DANA, ShopeePay), PayPal, Google Pay or Apple Pay. Cash in Indonesian rupiah at base camp is available only for trips where you drive to our starting point — if we pick you up from your hotel, payment is settled before pickup. Groups of ten or more may be asked for a deposit, explained before you commit.",
   },
   {
     question: "Can I cancel or change my date?",
