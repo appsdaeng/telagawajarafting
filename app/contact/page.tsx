@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { siteConfig, whatsappLink } from "@/lib/tours";
 
 export const metadata: Metadata = {
-  title: "Contact and location",
+  title: "Contact & Location",
   description:
-    "Contact Telaga Waja Rafting in Rendang, Karangasem, Bali. Bookings are confirmed on WhatsApp.",
+    "Contact Telaga Waja Rafting in Rendang, Karangasem, Bali. Base camp location, opening hours, pickup areas and WhatsApp booking.",
+  alternates: { canonical: "/contact" },
 };
 
 export default function ContactPage() {
@@ -48,23 +49,26 @@ export default function ContactPage() {
             <dd className="mt-2 text-sm leading-relaxed text-river-900">
               {siteConfig.name}
               <br />
-              {siteConfig.location}
+              {siteConfig.streetAddress}
               <br />
-              Bali, Indonesia
+              {siteConfig.addressLocality}, {siteConfig.addressRegion}{" "}
+              {siteConfig.postalCode}
+              <br />
+              Indonesia
             </dd>
           </div>
           <div>
             <dt className="text-xs font-semibold tracking-widest text-river-500 uppercase">
               Opening hours
             </dt>
-            <dd className="mt-2 text-sm text-river-900">Every day, 07:00 – 17:00</dd>
+            <dd className="mt-2 text-sm text-river-900">{siteConfig.hoursLabel}</dd>
           </div>
           <div>
             <dt className="text-xs font-semibold tracking-widest text-river-500 uppercase">
               Pickup areas
             </dt>
             <dd className="mt-2 text-sm leading-relaxed text-river-900">
-              Ubud, Seminyak, Kuta, Sanur and Canggu. Other areas on request.
+              {siteConfig.pickupAreas}
             </dd>
           </div>
         </dl>
