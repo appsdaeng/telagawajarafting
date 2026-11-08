@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/app/components/json-ld";
+import { hasPublicFile } from "@/lib/media";
+import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
 import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
 export function generateStaticParams() {
@@ -17,12 +21,18 @@ export async function generateMetadata(
     return { title: "Tour not found" };
   }
 
+  const description = `${tour.tagline}. ${formatRupiah(tour.priceAdult)} per adult, including guide, equipment, lunch and hotel pickup.`;
+
   return {
-    title: tour.name,
-    description: tour.tagline,
+    // Absolute: the tour name already contains the brand, so the layout's
+    // "%s | Telaga Waja Rafting" template would repeat it.
+    title: { absolute: `${tour.name} — Prices & Booking` },
+    description,
+    alternates: { canonical: `/tours/${tour.slug}` },
     openGraph: {
       title: `${tour.name} · ${siteConfig.name}`,
-      description: tour.tagline,
+      description,
+      ...(hasPublicFile(tour.image.src) ? { images: [{ url: tour.image.src, alt: tour.image.alt }] } : {}),
     },
   };
 }
@@ -35,14 +45,37 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
     notFound();
   }
 
+  const crumbs = [
+    { name: "Home", path: "/" },
+    { name: "Tours", path: "/tours" },
+    { name: tour.name, path: `/tours/${tour.slug}` },
+  ];
+  const hasImage = hasPublicFile(tour.image.src);
+
   return (
     <article className="container-page py-16 sm:py-20">
-      <Link
-        href="/tours"
-        className="text-sm font-medium text-river-600 underline-offset-4 hover:underline"
-      >
-        ← All tours
-      </Link>
+      <JsonLd data={tourJsonLd(tour)} />
+      <JsonLd data={breadcrumbJsonLd(crumbs)} />
+
+      <nav aria-label="Breadcrumb" className="text-sm text-river-600">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li>
+            <Link href="/" className="hover:text-river-900 hover:underline">
+              Home
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li>
+            <Link href="/tours" className="hover:text-river-900 hover:underline">
+              Tours
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="text-river-900">
+            {tour.name}
+          </li>
+        </ol>
+      </nav>
 
       <header className="mt-6 max-w-3xl">
         <h1 className="text-3xl font-semibold tracking-tight text-balance-tight sm:text-4xl">
@@ -51,9 +84,26 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
         <p className="mt-3 text-lg text-river-700">{tour.tagline}</p>
       </header>
 
+      {hasImage ? (
+        <div className="relative mt-8 aspect-16/9 overflow-hidden rounded-3xl bg-river-100">
+          <Image
+            src={tour.image.src}
+            alt={tour.image.alt}
+            fill
+            priority
+            sizes="(min-width: 1152px) 1152px, 100vw"
+            className="object-cover"
+          />
+        </div>
+      ) : null}
+
       <div className="mt-12 grid gap-12 lg:grid-cols-[1.6fr_1fr]">
         <div>
-          <p className="leading-relaxed text-river-900">{tour.description}</p>
+          <div className="space-y-4 leading-relaxed text-river-900">
+            {tour.story.map((paragraph) => (
+              <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+            ))}
+          </div>
 
           <section className="mt-10">
             <h2 className="text-lg font-semibold tracking-tight">Highlights</h2>
@@ -98,10 +148,11 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                 <dd className="mt-1 font-medium">{tour.meetingPoint}</dd>
               </div>
             </dl>
-            <p className="mt-4 text-sm leading-relaxed text-river-800">
-              Bring a change of clothes, sunscreen and a dry bag for phones. Lockers are
-              available at base camp.
-            </p>
+            <ul className="mt-4 space-y-2 text-sm leading-relaxed text-river-800">
+              {tour.goodToKnow.map((point) => (
+                <li key={point}>• {point}</li>
+              ))}
+            </ul>
           </section>
         </div>
 
@@ -118,17 +169,24 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
             </div>
           </dl>
           <p className="mt-3 text-xs text-river-600">
-            Per person, including equipment, guide and lunch. Paid at the counter on the day.
+            Per person, including equipment, guide, lunch and hotel pickup. Paid at base camp on
+            the day — no card details online.
           </p>
+          <Link
+            href={{ pathname: "/", query: { tour: tour.slug }, hash: "book" }}
+            className="mt-6 block rounded-full bg-river-600 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-river-700"
+          >
+            Check availability
+          </Link>
           <a
             href={whatsappLink(
               `Hi ${siteConfig.name}, I would like to book the ${tour.name}. Date: ___, people: ___`,
             )}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-6 block rounded-full bg-river-600 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-river-700"
+            className="mt-2 block rounded-full border border-river-300 px-5 py-2.5 text-center text-sm font-semibold text-river-800 transition-colors hover:bg-river-50"
           >
-            Book on WhatsApp
+            Ask on WhatsApp
           </a>
         </aside>
       </div>
