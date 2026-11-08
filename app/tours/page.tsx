@@ -1,17 +1,41 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/app/components/json-ld";
+import { breadcrumbJsonLd } from "@/lib/schema";
 import { formatRupiah, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
 export const metadata: Metadata = {
-  title: "Tours and prices",
+  title: "Rafting Tours & Prices in Bali",
   description:
-    "Telaga Waja rafting tours and prices in IDR. Signature run, sunrise run, and the rafting plus Ubud tour. Equipment, guide and lunch included.",
+    "Compare Telaga Waja rafting tours and prices in IDR: the signature 14 km run, the sunrise run and rafting plus a Ubud tour. Guide, lunch and pickup included.",
+  alternates: { canonical: "/tours" },
 };
 
 export default function ToursPage() {
   return (
     <div className="container-page py-16 sm:py-20">
-      <header className="max-w-2xl">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Tours", path: "/tours" },
+        ])}
+      />
+
+      <nav aria-label="Breadcrumb" className="text-sm text-river-600">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li>
+            <Link href="/" className="hover:text-river-900 hover:underline">
+              Home
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="text-river-900">
+            Tours
+          </li>
+        </ol>
+      </nav>
+
+      <header className="mt-6 max-w-2xl">
         <p className="text-xs font-semibold tracking-widest text-river-500 uppercase">Tours</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
           Tours and prices
