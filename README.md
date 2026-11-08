@@ -14,7 +14,7 @@ business takes them today — by WhatsApp — and prices and confirms them there
 
 | Page | URL | Notes |
 |------|-----|-------|
-| Home | `/` | Hero, booking widget, trust bar, tours, inclusions, day timeline, safety, FAQ, CTA |
+| Home | `/` | Hero, booking widget, trust bar, tours, inclusions, easy payment, day timeline, safety, FAQ, CTA |
 | Tours | `/tours` | Full comparison with IDR pricing |
 | Tour detail | `/tours/[slug]` | 300+ words each, own title/description/canonical, TouristTrip markup |
 | FAQ | `/faq` | Booking, payment, cancellation, what to bring — with FAQPage markup |
@@ -43,6 +43,22 @@ by a human. Moving to real online booking needs, in this order:
    availability.
 
 None of that is scaffolding here: it is additive work, and the widget is the seam.
+
+### Payment
+
+`paymentMethods` in `lib/content.ts` is the single source for accepted methods: Visa and
+Mastercard, QRIS, e-wallet, PayPal, Google Pay, Apple Pay, and cash at base camp. It
+feeds the "Easy payment" section on the home page and the payment FAQ, so adding or
+removing a method is a one-line change.
+
+Cash at base camp is flagged `venueOnly`: it only works when the guest drives to the
+starting point. Pickup bookings are paid before the driver leaves, which is why the
+section and the FAQ both state that rule rather than promising "pay on the day" to
+everyone.
+
+No card details are collected by this site and it runs no checkout — methods are
+arranged with staff on WhatsApp. When the gateway from step 2 is connected, this list
+becomes the checkout's method picker.
 
 ## Media (photos and video)
 
@@ -108,6 +124,7 @@ environment file at all, because every public value has a fallback.
 - **Address, hours, pickup areas** — `siteConfig` in `lib/tours.ts`. This feeds both the
   contact page and the schema markup, so a wrong address is wrong in Google too.
 - **Departure times** — `lib/availability.ts`.
+- **Payment methods** — `paymentMethods` in `lib/content.ts`.
 - **Reviews** — `reviews` in `lib/content.ts` and `siteConfig.reviews`.
 
 ## Agreed stack
