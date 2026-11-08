@@ -11,6 +11,7 @@ import {
   faqs,
   gallery,
   includedItems,
+  paymentMethods,
   reviews,
   safetyPoints,
   trustPoints,
@@ -183,6 +184,49 @@ export default function HomePage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* Easy payment — methods accepted, with the pay-at-venue rule spelled out. */}
+      <section aria-labelledby="payment-heading" className="bg-sand-50 py-16">
+        <div className="container-page grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-12">
+          <div>
+            <h2 id="payment-heading" className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Easy payment
+            </h2>
+            <p className="mt-3 leading-relaxed text-river-800">
+              Nothing is charged when you send the booking form. Once your spots are confirmed we
+              send the payment details on WhatsApp, and you pick whichever way is easiest.
+            </p>
+            <p className="mt-4 text-sm font-medium text-river-700">
+              No booking fee. Pay in Indonesian rupiah.
+            </p>
+          </div>
+
+          <div>
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {paymentMethods.map((method) => (
+                <li
+                  key={method.label}
+                  className="rounded-xl bg-white p-4 ring-1 ring-sand-200"
+                >
+                  <p className="text-sm font-semibold text-river-950">{method.label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-river-700">{method.detail}</p>
+                  {method.venueOnly ? (
+                    <span className="mt-2 inline-block rounded-full bg-sand-100 px-2 py-0.5 text-[0.6rem] font-semibold tracking-wide text-sand-900 uppercase">
+                      Meet at venue only
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 rounded-xl bg-white/70 p-4 text-xs leading-relaxed text-river-800 ring-1 ring-sand-200">
+              <strong className="font-semibold text-river-950">Paying on arrival:</strong> cash at
+              base camp is for trips where you drive to our starting point. Booked a hotel pickup?
+              Payment is settled on WhatsApp before the driver leaves, by card, QRIS, e-wallet or
+              PayPal.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* Your day */}
