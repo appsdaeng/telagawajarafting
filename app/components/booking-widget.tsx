@@ -120,7 +120,7 @@ export function BookingWidget({ options }: { options: Option[] }) {
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold tracking-tight">Check your date</h2>
-          <p className="text-xs text-river-500">Pay at base camp — no card details online</p>
+          <p className="text-xs text-river-500">No prepayment to reserve — pay after we confirm</p>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
