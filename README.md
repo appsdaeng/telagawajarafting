@@ -2,120 +2,131 @@
 
 Public website and internal point-of-sale for Telaga Waja Rafting, Bali.
 
-**Status: public site built, portal not started.** The customer-facing pages (home, tours,
-tour detail, contact) are implemented and build cleanly on Next.js 16. The login area, POS,
-gallery and admin portal from the brief are **not built yet**.
+**Status: public marketing site built and search-optimised. The admin portal, POS,
+database and online payment are not built yet.** The site takes bookings the way the
+business takes them today — by WhatsApp — and prices and confirms them there.
 
-- [`docs/BRIEF.md`](docs/BRIEF.md) — the full brief: scope, stack, roles, security, commercials
+- [`docs/BRIEF.md`](docs/BRIEF.md) — scope, stack, roles, security, commercials
 - [`docs/DELIVERY-CHECKLIST.md`](docs/DELIVERY-CHECKLIST.md) — how the finished work is reviewed
-- [`docs/WHATSAPP.md`](docs/WHATSAPP.md) — short version of the brief for initial contact
+- [`docs/WHATSAPP.md`](docs/WHATSAPP.md) — short version of the brief
 
-## What the project is
+## What exists
 
-A customer-facing site (Home, Tours, Tour detail, Contact) with a WhatsApp "Book now"
-enquiry button, plus a login area for two roles:
+| Page | URL | Notes |
+|------|-----|-------|
+| Home | `/` | Hero, booking widget, trust bar, tours, inclusions, day timeline, safety, FAQ, CTA |
+| Tours | `/tours` | Full comparison with IDR pricing |
+| Tour detail | `/tours/[slug]` | 300+ words each, own title/description/canonical, TouristTrip markup |
+| FAQ | `/faq` | Booking, payment, cancellation, what to bring — with FAQPage markup |
+| Contact | `/contact` | Location, hours, pickup areas, WhatsApp booking |
+| 404 | any unknown URL | Custom page with routes back into the site |
+| Sitemap | `/sitemap.xml` | Generated, includes every tour |
+| robots.txt | `/robots.txt` | Blocks portal paths, points at the sitemap |
 
-| Role | Access |
-|------|--------|
-| **Admin** | Tours, staff accounts, gallery (upload + delete), POS sales and reports, site settings |
-| **Staff** | POS only, and gallery upload only — no delete, no reports, no tour or staff management |
+## Booking, as it works today
 
-Customers do not book or pay online in Phase 1. All money is taken at the counter
-through the POS. Online booking with payment is a separately quoted Phase 2.
+The widget on the home page collects tour, date, adults and children, prices the party
+and hands the request to WhatsApp with everything pre-filled. It shows the configured
+departure times from `lib/availability.ts`.
 
-## Agreed stack
+**It does not reserve seats, and it must not pretend to.** Each departure is confirmed
+by a human. Moving to real online booking needs, in this order:
 
-- **Next.js (App Router) + TypeScript**, deployed on **Vercel**
-- **Postgres** (Neon or Supabase) via Prisma or Drizzle
-- **Auth.js (NextAuth)** credentials provider, or Supabase Auth, with a `role` field
-- **Hosted image storage** (Vercel Blob / Cloudinary / Supabase Storage) — Vercel's
-  filesystem is read-only and ephemeral, so nothing is stored on disk
-- **Tailwind CSS**, mobile-first
+1. **Postgres** (Neon/Supabase) with `tours`, `departures`, `bookings`, `payments`,
+   `users` tables — availability moves from `lib/availability.ts` into a server-side
+   check that decrements capacity, so a full slot cannot be sold twice.
+2. **A payment gateway** — Midtrans or Xendit for Indonesian cards, QRIS, e-wallets and
+   bank transfer (Stripe only if you also want to accept foreign cards directly). Keys
+   and webhook secrets go in Vercel, never in this repo.
+3. **Transactional email** for confirmations and the day-before reminder.
+4. **Admin + staff portal**, so walk-in POS sales and online bookings draw on the same
+   availability.
 
-## Project layout
+None of that is scaffolding here: it is additive work, and the widget is the seam.
+
+## Media (photos and video)
+
+The site is designed to look finished with no photos, and to get better the moment they
+arrive. Drop files at these exact paths and they appear; if a file is missing the
+component falls back to a gradient panel.
 
 ```
-app/
-  layout.tsx              Root layout: fonts, metadata, header, footer
-  page.tsx                Home — hero, tours, why us, how booking works
-  tours/page.tsx          Tour list with prices
-  tours/[slug]/page.tsx   Tour detail, prerendered per tour
-  contact/page.tsx        Contact and location
-  components/             Header and footer
-  globals.css             Tailwind theme tokens (river and sand palettes)
-lib/tours.ts              Tour catalogue and site config  ← placeholder data
-public/                   Static assets only (no user uploads)
-docs/                     Brief, checklist, WhatsApp message
+public/media/hero.jpg                      hero still (also used as the video poster)
+public/media/hero.mp4                      optional looping hero video, muted, no audio
+public/media/tours/telaga-waja-rafting.jpg
+public/media/tours/telaga-waja-sunrise.jpg
+public/media/tours/telaga-waja-plus-ubud.jpg
+public/media/gallery/<anything>.jpg        then add entries to `gallery` in lib/content.ts
 ```
+
+Alt text for tour images lives in `lib/tours.ts`; alt text for gallery images is part of
+each `gallery` entry and is required. Use compressed JPEG/WebP around 1600 px wide —
+`next/image` handles resizing and format negotiation, but not badly exported originals.
+
+## SEO
+
+- One H1 per page, unique title (under 60 characters) and description, canonical URL on
+  every page.
+- Structured data: `LocalBusiness` + `TouristAttraction` on the home page, `TouristTrip`
+  with a priced `Offer` per tour, `FAQPage` on `/faq`, `BreadcrumbList` on inner pages.
+- **No `AggregateRating` or `Review` markup.** `siteConfig.reviews` is `null` and
+  `reviews` in `lib/content.ts` is empty, so the rating badge and reviews section are not
+  rendered at all. Fill those in from the real Google Business Profile and they appear —
+  invented review markup is a manual-action risk and a lie to guests.
+- Generated `sitemap.xml`, `robots.txt`, custom 404, internal links between home, tours,
+  tour pages, FAQ and contact.
+- `NEXT_PUBLIC_SITE_URL` drives canonicals, Open Graph URLs, the sitemap and robots. A
+  bare domain is accepted (`www.example.com`) and normalised to `https://`.
+
+Before launch, on the live domain:
+
+1. Google Search Console: add the property, submit `/sitemap.xml`.
+2. Rich Results Test on `/` and a tour page — expect LocalBusiness/TouristTrip, no errors.
+3. PageSpeed Insights on mobile. The pages are static and ship no framework JavaScript
+   beyond the widget and analytics; most remaining weight will be your hero image.
+4. Create the Google Business Profile with the same name, address and phone as
+   `siteConfig`, and ask every guest for a review.
+5. Confirm `www` and non-www resolve to one version (Vercel → Domains → redirect).
 
 ## Local development
 
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm run build    # production build, must pass before merging
+npm run build    # must pass before merging
 npm run lint
 ```
 
-Requires Node 20 or newer. `package-lock.json` pins the exact dependency versions.
-
-Copy `.env.example` to `.env.local` and fill in real values:
-
-```bash
-cp .env.example .env.local
-```
-
-The public pages currently read only `NEXT_PUBLIC_WHATSAPP_NUMBER` and
-`NEXT_PUBLIC_SITE_URL`, both of which have safe fallbacks, so the site runs with no
-environment file at all. Every other variable is for the portal and is unused so far.
+Node 20 or newer. Copy `.env.example` to `.env.local` — the public site runs with no
+environment file at all, because every public value has a fallback.
 
 ## Placeholders to replace before launch
 
-These are deliberately fake and must not go live as-is:
+- **Prices and tour copy** — `lib/tours.ts`. The rates are examples, not the operator's.
+- **WhatsApp number** — `NEXT_PUBLIC_WHATSAPP_NUMBER` in Vercel. Any format works:
+  `+62 812-3456-7890`, `0812…` and `62812…` are all normalised to digits.
+- **Address, hours, pickup areas** — `siteConfig` in `lib/tours.ts`. This feeds both the
+  contact page and the schema markup, so a wrong address is wrong in Google too.
+- **Departure times** — `lib/availability.ts`.
+- **Reviews** — `reviews` in `lib/content.ts` and `siteConfig.reviews`.
 
-- **Tour prices and descriptions** — `lib/tours.ts`. The real rates come from the operator.
-- **WhatsApp number** — `NEXT_PUBLIC_WHATSAPP_NUMBER` in Vercel (fallback is a dummy).
-- **Base camp address, opening hours, pickup areas** — `app/contact/page.tsx`.
-- **Photography** — there are no photos yet; tour cards use gradient panels. Images belong in
-  hosted object storage, never in `public/`.
+## Agreed stack
 
-Until the portal exists, these are edited in code. After the portal exists, they are admin-editable.
+Next.js (App Router) + TypeScript on Vercel, Postgres (Neon or Supabase) via Prisma or
+Drizzle, Auth.js or Supabase Auth with a `role` field, hosted image storage (Vercel Blob,
+Cloudinary or Supabase Storage — Vercel's filesystem is read-only), Tailwind.
 
-## Ownership
-
-This repository is owned by the `appsdaeng` organisation. The developer works here as a
-collaborator. The Vercel project, database, image storage and domain are all owned by the
-repository owner — nothing is hosted in the developer's own accounts.
-
-## Branch and deploy model
-
-- `main` is production. Every push to `main` deploys automatically via Vercel.
-- `develop` is the integration branch; Vercel preview deployments are used for review.
-- Nothing is merged to `main` without a successful preview build.
+Analytics: `@vercel/analytics`, loaded in the root layout, with custom events
+`availability_checked` and `whatsapp_handoff` from the booking widget.
 
 ## Deploying to Vercel
 
-Import the repository with the **Next.js** preset and leave the build and output settings
-on their defaults (`next build`, `.next`, `npm install`). Set the root directory to the
-repository root. Pin the Node version to 20 or 22 in Settings → General.
+Import the repo with the **Next.js** preset, root directory at the repo root, build and
+output settings on their defaults, Node 20 or 22. Environment variables live in Vercel →
+Settings → Environment Variables, never in this repository. `NEXT_PUBLIC_*` values are
+inlined at build time, so changing them needs a redeploy.
 
-Environment variables live in **Vercel → Settings → Environment Variables**, never in this
-repository. Set `NEXT_PUBLIC_*` values before the first build — they are inlined at build
-time, so changing them later requires a redeploy. Mark every secret as sensitive.
+## Branch model
 
-Required today: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_WHATSAPP_NUMBER`.
-Required once the portal lands: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, image storage
-credentials, and Upstash Redis for login rate limiting. See `.env.example`.
-
-## Not built yet
-
-- Auth, the `role` field and server-side role checks
-- Database schema and migrations
-- POS, receipts and reports
-- Gallery upload to hosted storage
-- Admin portal for tours, staff and site settings
-
-## Creating an admin
-
-*(To be documented when auth is implemented — includes the seed/bootstrap process and
-how to add further admin accounts.)*
+`main` is production and auto-deploys. `develop` is integration; preview deployments are
+for review. Nothing merges to `main` without a passing preview build.
