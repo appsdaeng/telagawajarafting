@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import {
   describeParty,
@@ -17,6 +18,12 @@ type Option = {
   priceChild: number;
 };
 
+type Slot = {
+  time: string;
+  capacity: number | null;
+  remaining: number | null;
+};
+
 /** The page never navigates client-side, so there is nothing to subscribe to. */
 function subscribeToUrl() {
   return () => {};
@@ -28,11 +35,10 @@ const readSearchOnServer = () => "";
 /**
  * Booking widget.
  *
- * Deliberately does not pretend to hold a reservation: it reads the operator's
- * configured departure times, prices the party, and hands the request to
- * WhatsApp, which is how bookings are confirmed today. Real seat inventory needs
- * the Postgres bookings table and a server-side availability check — this
- * component is where that call will be wired in.
+ * Checks live capacity through /api/availability, then reserves the seats through
+ * /api/bookings. When the payment gateway is switched on the guest goes straight
+ * to Midtrans; otherwise the booking is held and confirmed by hand, which is how
+ * the site worked before. WhatsApp stays as the no-friction fallback.
  */
 export function BookingWidget({ options }: { options: Option[] }) {
   const [chosenSlug, setChosenSlug] = useState<string | null>(null);
@@ -42,7 +48,13 @@ export function BookingWidget({ options }: { options: Option[] }) {
   const [time, setTime] = useState<string | null>(null);
   const [checked, setChecked] = useState<null | { closed: boolean }>(null);
   const [error, setError] = useState<string | null>(null);
+  const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [onlineError, setOnlineError] = useState<string | null>(null);
+  const [guest, setGuest] = useState({ name: "", email: "", phone: "", hotel: "" });
   const dateRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // `?tour=slug` from a "Book now" card. Read through useSyncExternalStore so
   // the prerendered HTML (empty search) and the client agree on first paint.
@@ -74,9 +86,11 @@ export function BookingWidget({ options }: { options: Option[] }) {
     setChecked(null);
     setTime(null);
     setError(null);
+    setSlots(null);
+    setOnlineError(null);
   }
 
-  function handleCheck(event: React.FormEvent<HTMLFormElement>) {
+  async function handleCheck(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!date) {
@@ -102,8 +116,92 @@ export function BookingWidget({ options }: { options: Option[] }) {
     }
 
     setChecked({ closed: false });
-    setTime(departureTimes[0]);
-    track("availability_checked", { tour: tourSlug, date, closed: false });
+    setTime(null);
+    setSlots(null);
+    setChecking(true);
+    setOnlineError(null);
+
+    // Live capacity from the database. If the portal is not connected yet the
+    // widget keeps working against the published schedule and WhatsApp.
+    try {
+      const response = await fetch(
+        `/api/availability?slug=${encodeURIComponent(tourSlug)}&date=${date}`,
+      );
+      const data = (await response.json()) as { blocked?: boolean; slots?: Slot[] };
+
+      if (!response.ok) {
+        setSlots(departureTimes.map((slot) => ({ time: slot, capacity: null, remaining: null })));
+        setTime(departureTimes[0]);
+      } else if (data.blocked) {
+        setChecked({ closed: true });
+      } else {
+        const nextSlots = data.slots ?? [];
+        setSlots(nextSlots);
+        setTime(nextSlots.find((slot) => (slot.remaining ?? 1) > 0)?.time ?? null);
+      }
+
+      track("availability_checked", { tour: tourSlug, date, closed: false, live: response.ok });
+    } catch {
+      setSlots(departureTimes.map((slot) => ({ time: slot, capacity: null, remaining: null })));
+      setTime(departureTimes[0]);
+      track("availability_checked", { tour: tourSlug, date, closed: false, live: false });
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function reserveOnline(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!time || !guest.name) {
+      setOnlineError("Add your name and pick a departure.");
+      return;
+    }
+
+    setSubmitting(true);
+    setOnlineError(null);
+
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: tourSlug,
+          date,
+          time,
+          adults,
+          children,
+          name: guest.name,
+          email: guest.email,
+          phone: guest.phone,
+          hotel: guest.hotel,
+        }),
+      });
+      const data = (await response.json()) as {
+        code?: string;
+        total?: number;
+        paymentUrl?: string | null;
+        error?: string;
+      };
+
+      if (!response.ok || !data.code) {
+        setOnlineError(data.error ?? "Could not reserve those seats. Try WhatsApp instead.");
+        return;
+      }
+
+      track("online_booking", { tour: tourSlug, total: data.total ?? 0 });
+
+      if (data.paymentUrl) {
+        window.location.assign(data.paymentUrl);
+        return;
+      }
+
+      router.push(`/book/confirmed?code=${encodeURIComponent(data.code)}`);
+    } catch {
+      setOnlineError("Network error. Send the request on WhatsApp instead.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const message = tour
@@ -222,22 +320,32 @@ export function BookingWidget({ options }: { options: Option[] }) {
             ) : (
               <>
                 <p className="text-sm font-medium text-river-950">
-                  {departureTimes.length} departures on {date}
+                  {checking
+                    ? "Checking the schedule…"
+                    : `${(slots ?? []).filter((slot) => (slot.remaining ?? 1) > 0).length} departures on ${date}`}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {departureTimes.map((slot) => (
+                  {(slots ?? []).map((slot) => (
                     <button
-                      key={slot}
+                      key={slot.time}
                       type="button"
-                      onClick={() => setTime(slot)}
-                      aria-pressed={time === slot}
+                      onClick={() => setTime(slot.time)}
+                      disabled={(slot.remaining ?? 1) === 0}
+                      aria-pressed={time === slot.time}
                       className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-                        time === slot
-                          ? "border-river-600 bg-river-600 text-white"
-                          : "border-river-200 bg-white text-river-900 hover:border-river-400"
+                        (slot.remaining ?? 1) === 0
+                          ? "border-river-100 bg-river-50 text-river-400"
+                          : time === slot.time
+                            ? "border-river-600 bg-river-600 text-white"
+                            : "border-river-200 bg-white text-river-900 hover:border-river-400"
                       }`}
                     >
-                      {slot}
+                      {slot.time}
+                      {slot.remaining !== null ? (
+                        <span className="ml-2 text-xs opacity-80">
+                          {slot.remaining === 0 ? "full" : `${slot.remaining} left`}
+                        </span>
+                      ) : null}
                     </button>
                   ))}
                 </div>
@@ -252,17 +360,85 @@ export function BookingWidget({ options }: { options: Option[] }) {
       </form>
 
       {checked && !checked.closed ? (
-        <a
-          href={whatsappLink(message)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() =>
-            track("whatsapp_handoff", { tour: tourSlug, adults, children, total })
-          }
-          className="mt-3 block rounded-full bg-sand-400 px-6 py-3.5 text-center text-sm font-semibold text-river-950 transition-colors hover:bg-sand-300"
-        >
-          Send booking request on WhatsApp
-        </a>
+        <>
+          <form
+            onSubmit={reserveOnline}
+            className="mt-3 rounded-2xl border border-river-100 bg-white p-5 shadow-sm"
+          >
+            <p className="text-sm font-semibold">Reserve online</p>
+            <p className="mt-1 text-xs text-river-600">
+              We hold the seats for you and confirm by WhatsApp. Nothing is charged until we
+              confirm your departure.
+            </p>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <label className="block text-xs font-medium text-river-700">
+                Name
+                <input
+                  value={guest.name}
+                  onChange={(event) =>
+                    setGuest((current) => ({ ...current, name: event.target.value }))
+                  }
+                  required
+                  className="mt-1 w-full rounded-xl border border-river-200 px-3 py-2 text-sm focus:border-river-500 focus:outline-none"
+                />
+              </label>
+              <label className="block text-xs font-medium text-river-700">
+                WhatsApp number
+                <input
+                  value={guest.phone}
+                  onChange={(event) =>
+                    setGuest((current) => ({ ...current, phone: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-xl border border-river-200 px-3 py-2 text-sm focus:border-river-500 focus:outline-none"
+                />
+              </label>
+              <label className="block text-xs font-medium text-river-700">
+                Email (optional)
+                <input
+                  type="email"
+                  value={guest.email}
+                  onChange={(event) =>
+                    setGuest((current) => ({ ...current, email: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-xl border border-river-200 px-3 py-2 text-sm focus:border-river-500 focus:outline-none"
+                />
+              </label>
+              <label className="block text-xs font-medium text-river-700">
+                Hotel for pickup (optional)
+                <input
+                  value={guest.hotel}
+                  onChange={(event) =>
+                    setGuest((current) => ({ ...current, hotel: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-xl border border-river-200 px-3 py-2 text-sm focus:border-river-500 focus:outline-none"
+                />
+              </label>
+            </div>
+
+            {onlineError ? (
+              <p className="mt-2 text-xs font-medium text-red-700">{onlineError}</p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={submitting || !time}
+              className="mt-3 w-full rounded-full bg-river-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-river-700 disabled:opacity-60"
+            >
+              {submitting ? "Reserving…" : "Reserve these seats"}
+            </button>
+          </form>
+
+          <a
+            href={whatsappLink(message)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => track("whatsapp_handoff", { tour: tourSlug, adults, children, total })}
+            className="mt-3 block rounded-full bg-sand-400 px-6 py-3.5 text-center text-sm font-semibold text-river-950 transition-colors hover:bg-sand-300"
+          >
+            Ask on WhatsApp instead
+          </a>
+        </>
       ) : null}
     </div>
   );
