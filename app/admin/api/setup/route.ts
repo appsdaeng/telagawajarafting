@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   let created: { id: string } | undefined;
 
   try {
-    const rows = await sql<{ id: string }[]> `
+    const rows = await sql<{ id: string }[]>`
       insert into public.users (email, name, password_hash, role, active)
       values (${email}, ${name}, ${passwordHash}, 'ADMIN', true)
       returning id
