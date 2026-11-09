@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "./components/site-header";
-import { SiteFooter } from "./components/site-footer";
 import { siteConfig } from "@/lib/tours";
 
 const inter = Inter({
@@ -37,15 +34,15 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root layout is deliberately just the document. The public chrome lives in
+ * `app/(site)/layout.tsx` so `/admin` renders a dashboard shell instead of the
+ * marketing header and footer.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
-      <body className="flex min-h-full flex-col bg-white text-river-950">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
-        <Analytics />
-      </body>
+      <body className="flex min-h-full flex-col bg-white text-river-950">{children}</body>
     </html>
   );
 }
