@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   let created: { id: string } | undefined;
 
   try {
-    const rows = await sql<{ id: string }[]>`
+    const rows = await sql<{ id: string }[]> `
       insert into public.users (email, name, password_hash, role, active)
       values (${email}, ${name}, ${passwordHash}, 'ADMIN', true)
       returning id
@@ -60,9 +60,7 @@ export async function POST(request: NextRequest) {
     created = rows[0];
   } catch (error) {
     console.error("[admin/setup] could not create the first admin", error);
-    // TEMPORARY DIAGNOSTIC: surface the driver error code while fixing prod DB access.
-    const code = String((error as { code?: string }).code ?? "unknown");
-    return backToSetup(request, `failed&code=${encodeURIComponent(code)}`);
+    return backToSetup(request, "failed");
   }
 
   if (!created) {
