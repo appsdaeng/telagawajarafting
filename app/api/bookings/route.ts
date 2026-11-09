@@ -1,0 +1,173 @@
+import { NextResponse } from "next/server";
+import { BookingError, createBooking, getTourBySlug } from "@/lib/bookings";
+import { databaseConfigured, sql } from "@/lib/db";
+import { notifyBookingCreated } from "@/lib/email";
+import { createSnapTransaction, midtransConfigured } from "@/lib/payments/midtrans";
+import { getBookingSettings, getPaymentSettings } from "@/lib/settings";
+
+type Payload = {
+  slug?: string;
+  date?: string;
+  time?: string;
+  adults?: number;
+  children?: number;
+  name?: string;
+  email?: string;
+  phone?: string;
+  hotel?: string;
+  notes?: string;
+};
+
+function clean(value: unknown, max = 200): string {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+/**
+ * Create an online booking.
+ *
+ * Two outcomes, both honest:
+ *  - gateway on and configured → returns a Midtrans redirect URL, booking held
+ *    while payment is pending
+ *  - otherwise → returns the code for the confirmation page, with payment settled
+ *    by staff exactly as the site works today
+ */
+export async function POST(request: Request): Promise<Response> {
+  if (!databaseConfigured) {
+    return NextResponse.json({ error: "Booking is not configured yet." }, { status: 503 });
+  }
+
+  const body = (await request.json().catch(() => null)) as Payload | null;
+
+  if (!body) {
+    return NextResponse.json({ error: "Send a JSON body." }, { status: 400 });
+  }
+
+  const slug = clean(body.slug, 80);
+  const date = clean(body.date, 10);
+  const time = clean(body.time, 5);
+  const adults = Math.max(0, Math.trunc(Number(body.adults ?? 0)));
+  const children = Math.max(0, Math.trunc(Number(body.children ?? 0)));
+  const name = clean(body.name, 120);
+  const email = clean(body.email, 160);
+  const phone = clean(body.phone, 40);
+  const hotel = clean(body.hotel, 160);
+  const notes = clean(body.notes, 800);
+
+  if (!name) {
+    return NextResponse.json({ error: "A name is required." }, { status: 400 });
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^[0-2][0-9]:[0-5][0-9]$/.test(time)) {
+    return NextResponse.json({ error: "Pick a valid date and departure." }, { status: 400 });
+  }
+
+  if (!email && !phone) {
+    return NextResponse.json(
+      { error: "Leave an email or a phone number so we can confirm." },
+      { status: 400 },
+    );
+  }
+
+  const settings = await getBookingSettings();
+
+  if (adults + children < 1) {
+    return NextResponse.json({ error: "Add at least one guest." }, { status: 400 });
+  }
+
+  if (adults + children > settings.maxPartySize) {
+    return NextResponse.json(
+      { error: `For more than ${settings.maxPartySize} guests, message us on WhatsApp.` },
+      { status: 400 },
+    );
+  }
+
+  const tour = await getTourBySlug(slug);
+
+  if (!tour || !tour.published) {
+    return NextResponse.json({ error: "Tour not found." }, { status: 404 });
+  }
+
+  try {
+    const booking = await createBooking({
+      tourId: tour.id,
+      date,
+      time,
+      adults,
+      children,
+      guestName: name,
+      guestEmail: email,
+      guestPhone: phone,
+      hotel,
+      notes,
+      source: "ONLINE",
+    });
+
+    const payments = await getPaymentSettings();
+    const canCharge = payments.gatewayEnabled && midtransConfigured();
+
+    if (canCharge) {
+      const amount =
+        payments.depositPercent > 0
+          ? Math.round((booking.total_amount * payments.depositPercent) / 100)
+          : booking.total_amount;
+
+      const snap = await createSnapTransaction({
+        orderId: booking.code,
+        amount,
+        sandbox: payments.sandbox,
+        customer: { name, email, phone },
+        items: [
+          {
+            id: tour.slug,
+            name: `${tour.name} · ${date} ${time}`,
+            price: amount,
+            quantity: 1,
+          },
+        ],
+        finishUrl: `${new URL(request.url).origin}/book/confirmed?code=${booking.code}`,
+      });
+
+      if (snap.ok) {
+        await sql`
+          insert into public.payments (booking_id, provider, provider_ref, method, amount, status)
+          values (${booking.id}, 'MIDTRANS', ${booking.code}, 'gateway', ${amount}, 'PENDING')
+        `;
+        await sql`
+          update public.bookings
+          set payment_status = 'PENDING', payment_method = 'gateway', updated_at = now()
+          where id = ${booking.id}
+        `;
+
+        return NextResponse.json({
+          code: booking.code,
+          total: booking.total_amount,
+          deposit: amount,
+          paymentUrl: snap.redirectUrl,
+        });
+      }
+
+      // Gateway failed: keep the booking, fall back to staff confirmation.
+      await notifyBookingCreated(booking, tour.name).catch(() => {});
+      return NextResponse.json({
+        code: booking.code,
+        total: booking.total_amount,
+        paymentUrl: null,
+        warning: snap.error,
+      });
+    }
+
+    await notifyBookingCreated(booking, tour.name).catch(() => {});
+
+    return NextResponse.json({
+      code: booking.code,
+      total: booking.total_amount,
+      paymentUrl: null,
+    });
+  } catch (error) {
+    if (error instanceof BookingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    return NextResponse.json({ error: "Could not create the booking." }, { status: 500 });
+  }
+}
