@@ -11,7 +11,11 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/admin/login") || pathname.startsWith("/admin/setup")) {
+  if (
+    pathname.startsWith("/admin/login") ||
+    pathname.startsWith("/admin/setup") ||
+    pathname.startsWith("/admin/api/setup")
+  ) {
     return NextResponse.next();
   }
 
