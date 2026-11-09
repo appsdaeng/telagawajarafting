@@ -60,7 +60,9 @@ export async function POST(request: NextRequest) {
     created = rows[0];
   } catch (error) {
     console.error("[admin/setup] could not create the first admin", error);
-    return backToSetup(request, "failed");
+    // TEMPORARY DIAGNOSTIC: surface the driver error code while fixing prod DB access.
+    const code = String((error as { code?: string }).code ?? "unknown");
+    return backToSetup(request, `failed&code=${encodeURIComponent(code)}`);
   }
 
   if (!created) {
