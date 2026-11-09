@@ -5,7 +5,6 @@ import { countUsers } from "@/lib/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
 import { databaseConfigured } from "@/lib/db";
 import { buttonPrimary, inputClass, labelClass } from "@/app/admin/_components/ui";
-import { setupAction } from "../actions";
 
 export const metadata: Metadata = { title: "Create owner account" };
 
@@ -20,6 +19,10 @@ const messages: Record<string, string> = {
 /**
  * One-time bootstrap. Disabled by the action itself the moment a user exists, so
  * leaving the URL in place cannot create a second admin.
+ *
+ * Uses a real /admin/api/setup endpoint so the form action is a stable URL that
+ * works with turbopack builds (the server-action form binding was missing from
+ * the production RSC payload, so action={setupAction} resolved to "").
  */
 export default async function SetupPage({
   searchParams,
@@ -36,20 +39,26 @@ export default async function SetupPage({
     redirect("/admin/login");
   }
 
-  const message = error ? (messages[error] ?? "Could not create the account.") : null;
+  const message = error ? messages[error] ?? "Could not create the account." : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <p className="text-xs font-semibold tracking-widest text-river-500 uppercase">First run</p>
+          <p className="text-xs font-semibold tracking-widest text-river-500 uppercase">
+            First run
+          </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">Create the owner account</h1>
           <p className="mt-1 text-sm text-river-600">
             This is the ADMIN account with full access. You can add staff from inside the portal.
           </p>
         </div>
 
-        <form action={setupAction} className="rounded-2xl border border-river-100 bg-white p-6 shadow-sm">
+        <form
+          action="/admin/api/setup"
+          method="POST"
+          className="rounded-2xl border border-river-100 bg-white p-6 shadow-sm"
+        >
           {message ? (
             <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{message}</p>
           ) : null}
