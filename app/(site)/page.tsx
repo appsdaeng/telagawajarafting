@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { BookingWidget } from "@/app/components/booking-widget";
 import { FaqList } from "@/app/components/faq-list";
 import { GoogleMark } from "@/app/components/google-mark";
 import { GoogleReviews } from "@/app/components/google-reviews";
+import { GallerySlideshow } from "@/app/components/gallery-slideshow";
 import { HeroMedia } from "@/app/components/hero-media";
 import { JsonLd } from "@/app/components/json-ld";
 import { TourCard } from "@/app/components/tour-card";
@@ -12,21 +12,21 @@ import { Droplets, SplashUnderline, WaveDivider } from "@/app/components/wave-di
 import {
   dayTimeline,
   faqs,
-  gallery,
   includedItems,
   paymentMethods,
   reviews,
   safetyPoints,
   trustPoints,
 } from "@/lib/content";
+import { getGalleryImages } from "@/lib/gallery";
 import { HERO_IMAGE_CANDIDATES, firstPublicFile } from "@/lib/media";
 import { businessJsonLd } from "@/lib/schema";
 import { formatRupiah, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
 export const metadata: Metadata = {
-  title: "Telaga Waja Rafting Bali – No Stairs, Easy Access Adventure!",
+  title: "Telaga Waja Rafting Bali | Book Online",
   description:
-    "Experience Telaga Waja Rafting Bali with thrilling rapids, stunning scenery, and easy river access. No stairs at start and finish. Book your adventure!.",
+    "Raft 14 km of Class II–III rapids on the Telaga Waja river, Karangasem. From IDR 450,000 per person incl. guide, lunch and hotel pickup. Book in minutes.",
   alternates: { canonical: "/" },
 };
 
@@ -50,8 +50,8 @@ const bringList = [
 const whyChoose = [
   ...trustPoints,
   {
-    title: "Bali Rafting at Telaga Waja Rover - No Stairs at Start & Finish!",
-    body: "Enjoy a hassle-free Telaga Waja rafting adventure with convenient river access at both entry and exit points. Save your energy for the rapids, not the stairs!.",
+    title: "Bali's longest run",
+    body: "14 km of continuous Class II–III rapids — the longest rafting descent on the island.",
   },
 ];
 
@@ -66,7 +66,8 @@ const includedIcon = (title: string) => {
   return "✅";
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const gallery = await getGalleryImages();
   const fromPrice = Math.min(...tours.map((tour) => tour.priceAdult));
   const homeFaqs = faqs.slice(0, 5);
 
@@ -96,7 +97,7 @@ export default function HomePage() {
         <div className="relative container-page pt-14 pb-40 sm:pt-20 sm:pb-48 lg:pt-24">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold tracking-widest uppercase backdrop-blur">
             <span className="size-1.5 rounded-full bg-sand-400" aria-hidden="true" />
-            No Stairs, Lest Effort - Just Pure Rafting Adventure
+            NO STAIRS, LESS EFFORT – JUST PURE RAFTING ADVENTURE!
           </p>
 
           <h1 className="mt-5 max-w-4xl text-[2.5rem] leading-[0.95] font-extrabold tracking-tight uppercase text-balance-tight sm:text-6xl lg:text-7xl">
@@ -106,10 +107,7 @@ export default function HomePage() {
           <SplashUnderline className="text-sand-400" />
 
           <p className="mt-5 max-w-xl text-base leading-relaxed text-river-100 sm:text-lg">
-             Discover a different kind of rafting experience in Bali. Navigate exciting white-water
-            rapids surrounded by stunning tropical landscapes, with convenient start and finish
-            access designed for a more comfortable adventure. Enjoy the river without the hassle of
-            climbing endless stairs.
+            Discover a different kind of rafting experience in Bali. Navigate exciting white-water rapids surrounded by stunning tropical landscapes, with convenient start and finish access designed for a more comfortable adventure. Enjoy the river without the hassle of climbing endless stairs.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -295,6 +293,9 @@ export default function HomePage() {
           ))}
         </ul>
       </section>
+
+      {/* Gallery slideshow — sits right under the tour cards. */}
+      <GallerySlideshow images={gallery} />
 
       {/* Know before you go — what is included, and what to bring. */}
       <section className="relative mt-16 bg-river-50 pt-24 pb-28">
@@ -524,39 +525,6 @@ export default function HomePage() {
                 <p className="mt-4 text-xs font-semibold text-river-700">
                   {review.name} · {review.country}
                 </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {/* Gallery preview — only when photos exist. */}
-      {gallery.length > 0 ? (
-        <section className="container-page py-16">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-3xl leading-tight font-extrabold tracking-tight uppercase sm:text-4xl">
-              On the river
-            </h2>
-            <Link
-              href="/gallery"
-              className="text-sm font-bold tracking-wide text-river-700 uppercase underline-offset-4 hover:underline"
-            >
-              See the gallery →
-            </Link>
-          </div>
-          <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {gallery.slice(0, 6).map((image) => (
-              <li
-                key={image.src}
-                className="relative aspect-4/3 overflow-hidden rounded-2xl bg-river-100"
-              >
-                <Image
-                  src={image.src}
-                  alt={image.alt}
-                  fill
-                  sizes="(min-width: 640px) 33vw, 50vw"
-                  className="object-cover"
-                />
               </li>
             ))}
           </ul>
