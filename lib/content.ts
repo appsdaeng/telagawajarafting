@@ -205,7 +205,7 @@ export const googleReviews: GoogleReview[] = [
 export type GalleryImage = { src: string; alt: string };
 
 export const gallery: GalleryImage[] = [
-  { src: "/media/gallery/hero.jpg", alt: "Guests paddling a raft through white water on the Telaga Waja river" },
+  { src: "/media/gallery/telaga-waja-rafting-bali.jpeg", alt: "Guests paddling a raft through white water on the Telaga Waja river" },
   { src: "/media/gallery/rapids.jpg", alt: "White water rapids on the Telaga Waja river" },
   { src: "/media/gallery/canyon.jpg", alt: "Jungle canyon walls along the Telaga Waja river" },
   { src: "/media/gallery/guide.jpg", alt: "River guide explaining the route before departure" },
