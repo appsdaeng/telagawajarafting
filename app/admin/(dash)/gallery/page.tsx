@@ -13,9 +13,54 @@ import {
   inputClass,
   labelClass,
 } from "@/app/admin/_components/ui";
+import { ACCEPTED_IMAGE_TYPES, storageConfigured } from "@/lib/storage";
 import { addGalleryAction, approveGalleryAction, deleteGalleryAction } from "../actions";
 
 export const metadata: Metadata = { title: "Gallery" };
+
+/** The details every photo needs, shared by the upload and link forms. */
+function PhotoFields({ canPublish, submit }: { canPublish: boolean; submit: string }) {
+  return (
+    <>
+      <label className="block">
+        <span className={labelClass}>Alt text (required)</span>
+        <input name="alt" required className={inputClass} />
+      </label>
+      <label className="block">
+        <span className={labelClass}>Caption</span>
+        <input name="caption" className={inputClass} />
+      </label>
+      <label className="block">
+        <span className={labelClass}>Category</span>
+        <select name="category" className={inputClass} defaultValue="rafting">
+          <option value="rafting">Rafting</option>
+          <option value="river">River</option>
+          <option value="team">Team</option>
+          <option value="guests">Guests</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className={labelClass}>Sort order</span>
+        <input name="sort_order" type="number" defaultValue={0} className={inputClass} />
+      </label>
+      {canPublish ? (
+        <label className="flex items-center gap-2 text-sm sm:col-span-2">
+          <input type="checkbox" name="approved" defaultChecked />
+          Publish immediately
+        </label>
+      ) : (
+        <p className="text-xs text-river-500 sm:col-span-2">
+          Staff uploads wait for admin approval.
+        </p>
+      )}
+      <div className="sm:col-span-2">
+        <button type="submit" className={buttonPrimary}>
+          {submit}
+        </button>
+      </div>
+    </>
+  );
+}
 
 export default async function GalleryPage({
   searchParams,
@@ -48,7 +93,42 @@ export default async function GalleryPage({
       ) : null}
 
       <Card className="p-4">
-        <h2 className="text-sm font-semibold">Add a photo</h2>
+        <h2 className="text-sm font-semibold">Upload from your device</h2>
+        <p className="mt-1 text-xs text-river-500">
+          JPG, PNG, WebP, AVIF or GIF, up to 4 MB. The photo is stored in Supabase Storage and
+          served from there.
+        </p>
+        {!storageConfigured ? (
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Uploads are off until SUPABASE_SERVICE_ROLE_KEY is added in Vercel → Settings →
+            Environment Variables. Adding a link below works either way.
+          </p>
+        ) : null}
+        <form
+          action="/admin/api/gallery/upload"
+          method="post"
+          encType="multipart/form-data"
+          className="mt-3 grid gap-3 sm:grid-cols-2"
+        >
+          <label className="block sm:col-span-2">
+            <span className={labelClass}>Photo</span>
+            <input
+              name="file"
+              type="file"
+              accept={ACCEPTED_IMAGE_TYPES.join(",")}
+              required
+              className={inputClass}
+            />
+          </label>
+          <PhotoFields canPublish={user.role === "ADMIN"} submit="Upload photo" />
+        </form>
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="text-sm font-semibold">Add by link</h2>
+        <p className="mt-1 text-xs text-river-500">
+          Already have the photo on a CDN or another site? Paste its direct image URL.
+        </p>
         <form action={addGalleryAction} className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="block sm:col-span-2">
             <span className={labelClass}>Image URL</span>
@@ -58,47 +138,8 @@ export default async function GalleryPage({
               placeholder="https://… or /media/gallery/river.jpg"
               className={inputClass}
             />
-            <span className="mt-1 block text-xs text-river-500">
-              Direct image URL. Upload to Supabase Storage or Vercel Blob first; the site never
-              writes to its own filesystem.
-            </span>
           </label>
-          <label className="block">
-            <span className={labelClass}>Alt text (required)</span>
-            <input name="alt" required className={inputClass} />
-          </label>
-          <label className="block">
-            <span className={labelClass}>Caption</span>
-            <input name="caption" className={inputClass} />
-          </label>
-          <label className="block">
-            <span className={labelClass}>Category</span>
-            <select name="category" className={inputClass} defaultValue="rafting">
-              <option value="rafting">Rafting</option>
-              <option value="river">River</option>
-              <option value="team">Team</option>
-              <option value="guests">Guests</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className={labelClass}>Sort order</span>
-            <input name="sort_order" type="number" defaultValue={0} className={inputClass} />
-          </label>
-          {user.role === "ADMIN" ? (
-            <label className="flex items-center gap-2 text-sm sm:col-span-2">
-              <input type="checkbox" name="approved" defaultChecked />
-              Publish immediately
-            </label>
-          ) : (
-            <p className="text-xs text-river-500 sm:col-span-2">
-              Staff uploads wait for admin approval.
-            </p>
-          )}
-          <div className="sm:col-span-2">
-            <button type="submit" className={buttonPrimary}>
-              Add image
-            </button>
-          </div>
+          <PhotoFields canPublish={user.role === "ADMIN"} submit="Add image" />
         </form>
       </Card>
 
