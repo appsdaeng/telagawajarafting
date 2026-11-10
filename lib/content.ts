@@ -181,6 +181,22 @@ export type Review = {
  */
 export const reviews: Review[] = [];
 
+/**
+ * Short quotes from the business's own Google reviews, shown under the booking
+ * widget. No names or star counts are attached to them here: those have to come
+ * from the listing itself, and inventing them would be both a lie to guests and
+ * a rating-markup risk. The section links out to the listing instead.
+ *
+ * Copy these from the Google Business Profile, one short sentence each.
+ */
+export const googleReviewQuotes: string[] = [
+  "Absolute fun time",
+  "Awesome day",
+  "Had a great rafting experience",
+  "The price is very competitive",
+  "Amazing way to see the true Bali. Great guide",
+];
+
 export type GalleryImage = { src: string; alt: string };
 
 /**
