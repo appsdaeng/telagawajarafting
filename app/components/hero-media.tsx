@@ -7,6 +7,8 @@ type HeroMediaProps = {
   /** Public path to a still, used as poster and as the fallback image. */
   image?: string;
   alt: string;
+  /** Extra classes for the still, e.g. an object-position to steer the crop. */
+  imageClassName?: string;
 };
 
 /**
@@ -16,7 +18,7 @@ type HeroMediaProps = {
  * file exists, otherwise the still, otherwise a gradient. Nothing renders as a
  * broken image, and there is no request for a file that is not there.
  */
-export function HeroMedia({ video, image, alt }: HeroMediaProps) {
+export function HeroMedia({ video, image, alt, imageClassName }: HeroMediaProps) {
   const hasVideo = hasPublicFile(video);
   const hasImage = hasPublicFile(image);
 
@@ -45,7 +47,7 @@ export function HeroMedia({ video, image, alt }: HeroMediaProps) {
         fill
         priority
         sizes="100vw"
-        className="object-cover"
+        className={`object-cover ${imageClassName ?? ""}`}
       />
     );
   }
