@@ -195,22 +195,18 @@ export default function HomePage() {
         <div className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">
-              Telaga Waja Adventure · TWA Rafting
+              Experience the Thrill of Telaga Waja Rafting
             </p>
             <h2 className="mt-3 text-3xl leading-tight font-extrabold tracking-tight uppercase sm:text-4xl">
-              Your ultimate thrilling experience
+              Ride the Rapids. Embrace the Adventure
             </h2>
             <SplashUnderline className="text-river-400" />
             <p className="mt-5 leading-relaxed text-river-800">
-              The Telaga Waja is the longest rafting run in Bali that most operators will take a
-              beginner on. You put in near Rendang, high in the Karangasem hills, and work your way
-              down a narrow canyon of clear, cold spring water — open all year, even in the wet
-              season.
-            </p>
-            <p className="mt-4 leading-relaxed text-river-800">
-              No experience is needed. Your guide steers from the back and calls the strokes, a
-              safety kayak shadows the group, and non-swimmers ride along comfortably. You finish
-              with a four-metre drop under the bridge, a hot shower and lunch on the terrace.
+              Get ready for an exhilarating white-water rafting journey through Bali’s breathtaking
+              natural landscapes. Navigate exciting rapids, discover stunning river scenery, and
+              create unforgettable memories with every splash. Whether you&apos;re an adventure seeker, a
+              couple, or traveling with friends and family, your ultimate Bali river adventure starts
+              here!
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a
