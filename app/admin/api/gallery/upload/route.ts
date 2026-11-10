@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { sql } from "@/lib/db";
-import { StorageError, storageConfigured, uploadImage } from "@/lib/storage";
+import { StorageError, storageSetupHint, uploadImage } from "@/lib/storage";
 
 const CATEGORIES = ["rafting", "river", "team", "guests"];
 const TRUTHY = new Set(["on", "true", "1"]);
@@ -27,11 +27,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login", request.url), 303);
   }
 
-  if (!storageConfigured) {
-    return back(request, {
-      error:
-        "Photo upload is turned off: add SUPABASE_SERVICE_ROLE_KEY in Vercel → Settings → Environment Variables.",
-    });
+  const hint = storageSetupHint();
+
+  if (hint) {
+    return back(request, { error: hint });
   }
 
   const form = await request.formData();

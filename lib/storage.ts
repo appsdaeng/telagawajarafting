@@ -49,7 +49,20 @@ function projectUrl(): string {
   return "";
 }
 
-export const storageConfigured = serviceKey().length > 0 && projectUrl().length > 0;
+export const storageConfigured = storageSetupHint() === null;
+
+/** Why uploads cannot run yet, or null when they can. */
+export function storageSetupHint(): string | null {
+  if (!projectUrl()) {
+    return "Photo upload needs SUPABASE_URL in Vercel → Settings → Environment Variables (for example https://<project-ref>.supabase.co).";
+  }
+
+  if (!serviceKey()) {
+    return "Photo upload needs SUPABASE_SERVICE_ROLE_KEY in Vercel → Settings → Environment Variables.";
+  }
+
+  return null;
+}
 
 /** A failure the gallery page can show as-is. */
 export class StorageError extends Error {}
@@ -77,11 +90,10 @@ function checkFile(file: File): string {
 export async function uploadImage(file: File): Promise<string> {
   const base = projectUrl();
   const key = serviceKey();
+  const hint = storageSetupHint();
 
   if (!base || !key) {
-    throw new StorageError(
-      "Photo upload is turned off: add SUPABASE_SERVICE_ROLE_KEY in Vercel → Settings → Environment Variables. Pasting an image link still works.",
-    );
+    throw new StorageError(`${hint ?? "Photo upload is not configured."} Pasting an image link still works.`);
   }
 
   const extension = checkFile(file);

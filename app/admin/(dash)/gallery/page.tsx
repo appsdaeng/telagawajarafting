@@ -13,7 +13,7 @@ import {
   inputClass,
   labelClass,
 } from "@/app/admin/_components/ui";
-import { ACCEPTED_IMAGE_TYPES, storageConfigured } from "@/lib/storage";
+import { ACCEPTED_IMAGE_TYPES, storageSetupHint } from "@/lib/storage";
 import { addGalleryAction, approveGalleryAction, deleteGalleryAction } from "../actions";
 
 export const metadata: Metadata = { title: "Gallery" };
@@ -69,6 +69,7 @@ export default async function GalleryPage({
 }) {
   const user = await requireUser();
   const { saved, error } = await searchParams;
+  const storageHint = storageSetupHint();
   const images = await sql<GalleryRow[]>`
     select * from public.gallery_images order by category, sort_order, created_at desc
   `;
@@ -98,10 +99,9 @@ export default async function GalleryPage({
           JPG, PNG, WebP, AVIF or GIF, up to 4 MB. The photo is stored in Supabase Storage and
           served from there.
         </p>
-        {!storageConfigured ? (
+        {storageHint ? (
           <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            Uploads are off until SUPABASE_SERVICE_ROLE_KEY is added in Vercel → Settings →
-            Environment Variables. Adding a link below works either way.
+            {storageHint} Adding a link below works either way.
           </p>
         ) : null}
         <form
