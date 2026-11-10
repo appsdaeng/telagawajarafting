@@ -14,7 +14,10 @@ export function middleware(request: NextRequest): NextResponse {
   if (
     pathname.startsWith("/admin/login") ||
     pathname.startsWith("/admin/setup") ||
-    pathname.startsWith("/admin/api/setup")
+    pathname.startsWith("/admin/api/setup") ||
+    // Handles its own session check and answers with a 303, so the form POST
+    // is never replayed to the login page.
+    pathname.startsWith("/admin/api/gallery")
   ) {
     return NextResponse.next();
   }
