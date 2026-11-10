@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef } from "react";
 import { GoogleMark } from "@/app/components/google-mark";
 import { googleReviewSummary, googleReviews } from "@/lib/content";
@@ -129,10 +130,19 @@ export function GoogleReviews() {
             ))}
           </ul>
 
-          <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3 justify-between sm:gap-4">
             <p className="text-xs text-river-600">
               Swipe for more · tap a review to read it on Google
             </p>
+            <Link
+              href="/tours"
+              className="inline-flex items-center gap-2 rounded-full bg-sand-300 px-4 py-2 text-xs font-bold tracking-wide text-river-950 uppercase transition-colors hover:bg-sand-400"
+            >
+              Book Now!
+              <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4" fill="currentColor">
+                <path d="M6.5 4l8 8-2.3 1.8-3.5-3.5a.6.6 0 010-.9L12 5.4l-4.5 4 1.8 2.3-7-7z" />
+              </svg>
+            </Link>
             <div className="flex gap-2">
               <button
                 type="button"
