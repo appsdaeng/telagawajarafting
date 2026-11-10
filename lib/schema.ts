@@ -1,7 +1,7 @@
 import type { Faq } from "@/lib/content";
 import type { Tour } from "@/lib/tours";
 import { formatRupiah, siteConfig, tours } from "@/lib/tours";
-import { hasPublicFile } from "@/lib/media";
+import { HERO_IMAGE_CANDIDATES, firstPublicFile, hasPublicFile } from "@/lib/media";
 
 /**
  * schema.org / JSON-LD builders.
@@ -33,6 +33,7 @@ const description =
 /** LocalBusiness + TouristAttraction for the home page. */
 export function businessJsonLd() {
   const cheapest = Math.min(...tours.map((tour) => tour.priceAdult));
+  const heroImage = firstPublicFile(...HERO_IMAGE_CANDIDATES);
 
   return {
     "@context": "https://schema.org",
@@ -71,7 +72,7 @@ export function businessJsonLd() {
     priceRange: `From ${formatRupiah(cheapest)}`,
     currenciesAccepted: "IDR",
     paymentAccepted: "Cash, Credit Card",
-    ...(hasPublicFile("/media/hero.jpg") ? { image: absolute("/media/hero.jpg") } : {}),
+    ...(heroImage ? { image: absolute(heroImage) } : {}),
   };
 }
 
