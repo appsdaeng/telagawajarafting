@@ -17,6 +17,7 @@ import {
   safetyPoints,
   trustPoints,
 } from "@/lib/content";
+import { HERO_IMAGE_CANDIDATES, firstPublicFile } from "@/lib/media";
 import { businessJsonLd } from "@/lib/schema";
 import { formatRupiah, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
@@ -75,12 +76,19 @@ export default function HomePage() {
       <section className="relative isolate overflow-hidden bg-river-950 text-white">
         <HeroMedia
           video="/media/hero.mp4"
-          image="/media/hero.jpg"
+          image={firstPublicFile(...HERO_IMAGE_CANDIDATES)}
           alt="Guests in helmets and life jackets paddling a raft through white water on the Telaga Waja river"
+          imageClassName="object-[58%_36%]"
+        />
+        {/* Bottom wash keeps the wave edge readable; the side scrim keeps the copy
+            legible without hiding the raft on the right of the photo. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(to_top,var(--color-river-950)_2%,rgba(8,38,43,0.66)_45%,rgba(8,38,43,0.28)_100%)]"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(to_top,var(--color-river-950)_2%,rgba(8,38,43,0.78)_45%,rgba(8,38,43,0.42)_100%)]"
+          className="absolute inset-0 hidden bg-[linear-gradient(to_right,rgba(6,32,37,0.80)_0%,rgba(6,32,37,0.50)_40%,rgba(6,32,37,0.12)_70%,rgba(6,32,37,0)_100%)] sm:block"
         />
 
         <div className="relative container-page pt-14 pb-40 sm:pt-20 sm:pb-48 lg:pt-24">
