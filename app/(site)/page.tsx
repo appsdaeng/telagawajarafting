@@ -24,7 +24,7 @@ import { businessJsonLd } from "@/lib/schema";
 import { formatRupiah, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
 export const metadata: Metadata = {
-  title: "Telaga Waja Rafting Bali | Book Online",
+  title: "Telaga Waja Rafting Bali – No Stairs, Easy Access Adventure!",
   description:
     "Raft 14 km of Class II–III rapids on the Telaga Waja river, Karangasem. From IDR 450,000 per person incl. guide, lunch and hotel pickup. Book in minutes.",
   alternates: { canonical: "/" },
