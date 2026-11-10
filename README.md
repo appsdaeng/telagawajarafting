@@ -67,7 +67,7 @@ arrive. Drop files at these exact paths and they appear; if a file is missing th
 component falls back to a gradient panel.
 
 ```
-public/media/hero.jpg                      hero still (also used as the video poster)
+public/media/hero.jpg (or hero.jpeg)        hero still (also used as the video poster)
 public/media/hero.mp4                      optional looping hero video, muted, no audio
 public/media/tours/telaga-waja-rafting.jpg
 public/media/tours/telaga-waja-sunrise.jpg
