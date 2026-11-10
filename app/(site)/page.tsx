@@ -26,7 +26,7 @@ import { formatRupiah, siteConfig, tours, whatsappLink } from "@/lib/tours";
 export const metadata: Metadata = {
   title: "Telaga Waja Rafting Bali – No Stairs, Easy Access Adventure!",
   description:
-    "Raft 14 km of Class II–III rapids on the Telaga Waja river, Karangasem. From IDR 450,000 per person incl. guide, lunch and hotel pickup. Book in minutes.",
+    "Experience Telaga Waja Rafting Bali with thrilling rapids, stunning scenery, and easy river access. No stairs at start and finish. Book your adventure!.",
   alternates: { canonical: "/" },
 };
 
@@ -50,8 +50,8 @@ const bringList = [
 const whyChoose = [
   ...trustPoints,
   {
-    title: "Bali's longest run",
-    body: "14 km of continuous Class II–III rapids — the longest rafting descent on the island.",
+    title: "Bali Rafting at Telaga Waja Rover - No Stairs at Start & Finish!",
+    body: "Enjoy a hassle-free Telaga Waja rafting adventure with convenient river access at both entry and exit points. Save your energy for the rapids, not the stairs!.",
   },
 ];
 
@@ -96,7 +96,7 @@ export default function HomePage() {
         <div className="relative container-page pt-14 pb-40 sm:pt-20 sm:pb-48 lg:pt-24">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold tracking-widest uppercase backdrop-blur">
             <span className="size-1.5 rounded-full bg-sand-400" aria-hidden="true" />
-            Rendang, Karangasem · open daily
+            No Stairs, Lest Effort - Just Pure Rafting Adventure
           </p>
 
           <h1 className="mt-5 max-w-4xl text-[2.5rem] leading-[0.95] font-extrabold tracking-tight uppercase text-balance-tight sm:text-6xl lg:text-7xl">
@@ -106,8 +106,10 @@ export default function HomePage() {
           <SplashUnderline className="text-sand-400" />
 
           <p className="mt-5 max-w-xl text-base leading-relaxed text-river-100 sm:text-lg">
-            Fourteen kilometres of Class II–III white water through a jungle canyon — then the drop
-            everyone talks about. Guide, safety gear, lunch and hotel pickup included.
+             Discover a different kind of rafting experience in Bali. Navigate exciting white-water
+            rapids surrounded by stunning tropical landscapes, with convenient start and finish
+            access designed for a more comfortable adventure. Enjoy the river without the hassle of
+            climbing endless stairs.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
