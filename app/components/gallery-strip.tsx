@@ -2,12 +2,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { GallerySection } from "@/lib/content";
 
-export function GalleryStrip({ section }: { section: GallerySection }) {
-  const { images } = section;
+type GalleryStripProps = {
+  section: GallerySection;
+};
+
+export function GalleryStrip({ section: { images } }: GalleryStripProps) {
+
   return (
     <section className="container-page pb-16 pt-14 sm:pt-16">
       <div className="mx-auto max-w-2xl text-center">
-        <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">Adventure Today, Memories Forever</p>
+        <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">Good Words</p>
         <h2 className="mt-3 text-3xl leading-tight font-extrabold tracking-tight uppercase sm:text-4xl">
           Moment You Never Forget
         </h2>
@@ -24,6 +28,7 @@ export function GalleryStrip({ section }: { section: GallerySection }) {
                     src={image.src}
                     alt={image.alt}
                     fill
+                    unoptimized
                     sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
