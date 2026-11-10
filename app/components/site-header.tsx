@@ -4,7 +4,7 @@ import { siteConfig, whatsappLink } from "@/lib/tours";
 const navigation = [
   { href: "/", label: "Home" },
   { href: "/tours", label: "Rafting tours" },
-  { href: "/#day", label: "How it works" },
+  { href: "/gallery", label: "Gallery" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
 ];
