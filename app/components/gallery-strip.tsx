@@ -7,7 +7,7 @@ export function GalleryStrip({ section }: { section: GallerySection }) {
   return (
     <section className="container-page pb-16 pt-14 sm:pt-16">
       <div className="mx-auto max-w-2xl text-center">
-        <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">Good Words</p>
+        <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">Adventure Today, Memories Forever</p>
         <h2 className="mt-3 text-3xl leading-tight font-extrabold tracking-tight uppercase sm:text-4xl">
           Moment You Never Forget
         </h2>
