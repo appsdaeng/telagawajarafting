@@ -22,10 +22,24 @@ export function TourCard({ tour }: { tour: Tour }) {
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
+          // No photo supplied yet: a water panel rather than an empty box.
           <div
             aria-hidden="true"
-            className="size-full bg-[linear-gradient(135deg,var(--color-river-500),var(--color-river-900))]"
-          />
+            className="size-full bg-[linear-gradient(135deg,var(--color-river-400),var(--color-river-900))]"
+          >
+            <svg
+              viewBox="0 0 1440 120"
+              preserveAspectRatio="none"
+              className="absolute inset-x-0 bottom-0 h-2/3 w-full text-white/15"
+              fill="currentColor"
+            >
+              <path d="M0 58c150 44 300 12 450-14s300-46 450-10 300 58 450 22 90-14 90-14v78H0Z" />
+              <path
+                opacity="0.75"
+                d="M0 90c170 18 320-40 480-40s290 52 450 44 300-44 510-20v66H0Z"
+              />
+            </svg>
+          </div>
         )}
 
         {tour.popular ? (
