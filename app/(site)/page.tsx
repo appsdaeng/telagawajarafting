@@ -11,6 +11,7 @@ import {
   dayTimeline,
   faqs,
   gallery,
+  googleReviewQuotes,
   includedItems,
   paymentMethods,
   reviews,
@@ -52,6 +53,30 @@ const whyChoose = [
     body: "14 km of continuous Class II–III rapids — the longest rafting descent on the island.",
   },
 ];
+
+/** Google's "G", so the review block is recognisably sourced from the listing. */
+function GoogleMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" className={className}>
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
+    </svg>
+  );
+}
 
 const includedIcon = (title: string) => {
   const t = title.toLowerCase();
@@ -163,8 +188,54 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Google reviews, right under the booking search bar. Quotes come from the
+          real listing, so the block links out rather than claiming a star rating. */}
+      <section aria-labelledby="google-reviews-heading" className="container-page pt-14 sm:pt-16">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold tracking-wide text-river-800 uppercase ring-1 ring-river-100">
+            <GoogleMark className="size-4" />
+            Google reviews
+          </p>
+          <h2
+            id="google-reviews-heading"
+            className="mt-4 text-3xl leading-tight font-extrabold tracking-tight uppercase sm:text-4xl"
+          >
+            What customers said?
+          </h2>
+          <SplashUnderline className="mx-auto text-river-400" />
+          <p className="mt-4 text-sm font-semibold tracking-[0.18em] text-river-600 uppercase">
+            Some said
+          </p>
+        </div>
+
+        <ul className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {googleReviewQuotes.map((quote) => (
+            <li
+              key={quote}
+              className="flex items-center justify-center rounded-2xl bg-river-50 px-5 py-6 text-center text-sm leading-relaxed text-river-900 ring-1 ring-river-100"
+            >
+              <span>&ldquo;{quote}&rdquo;</span>
+            </li>
+          ))}
+        </ul>
+
+        {siteConfig.googleBusinessUrl ? (
+          <div className="mt-8 text-center">
+            <a
+              href={siteConfig.googleBusinessUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2.5 rounded-full border-2 border-river-200 px-6 py-3 text-sm font-bold tracking-wide text-river-800 uppercase transition-colors hover:bg-river-50"
+            >
+              <GoogleMark className="size-4" />
+              Read all reviews on Google
+            </a>
+          </div>
+        ) : null}
+      </section>
+
       {/* Introduction */}
-      <section className="container-page py-16 sm:py-20">
+      <section className="container-page pt-14 pb-16 sm:pb-20">
         <div className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">
