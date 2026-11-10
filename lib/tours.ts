@@ -233,8 +233,8 @@ export const siteConfig = {
    * and it would be a lie to guests. Fill in from the Google Business Profile.
    */
   reviews: null as null | { rating: number; count: number; url: string },
-  /** Set once a Google Business Profile exists; used for the "reviews" links. */
-  googleBusinessUrl: null as string | null,
+  /** The Google Maps listing guests are sent to for reviews. */
+  googleBusinessUrl: "https://maps.app.goo.gl/9Sh5ouUQp48s4xbi8" as string | null,
 };
 
 /** Build a wa.me deep link with a pre-filled enquiry message. */
