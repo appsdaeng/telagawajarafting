@@ -4,8 +4,8 @@ import { GalleryStrip } from "@/app/components/gallery-strip";
 import { gallerySection } from "@/lib/content";
 
 export const metadata = {
-  title: "Gallery",
-  description: "Moments from the Telaga Waja river in Bali, uploaded by the operator.",
+  title: "Telaga Waja Rafting - Moments You'll Never Forget",
+  description: "Create moments you'll never forget with Telaga Waja Rafting Bali! Enjoy thrilling rapids, stunning scenery, and easy access with no stairs. Book now!.",
 };
 
 export default function GalleryPage() {
