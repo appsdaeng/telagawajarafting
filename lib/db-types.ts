@@ -116,6 +116,7 @@ export type AuditRow = {
 
 export type EmailLogRow = {
   id: string;
+  kind: string;
   to_email: string;
   from_email: string;
   subject: string;
