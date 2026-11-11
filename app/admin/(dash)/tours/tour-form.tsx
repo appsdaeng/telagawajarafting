@@ -5,6 +5,8 @@ import {
   labelClass,
 } from "@/app/admin/_components/ui";
 import { RichTextField } from "@/app/admin/_components/rich-text";
+import { ImageField } from "@/app/admin/_components/image-field";
+import { storageSetupHint } from "@/lib/storage";
 import { saveTourWithRichTextAction } from "./save-tour";
 
 function Area({
@@ -141,15 +143,13 @@ export function TourForm({ tour }: { tour?: TourRow }) {
       </div>
 
       <div className="grid gap-4 rounded-2xl border border-river-100 bg-white p-4 shadow-sm sm:grid-cols-2">
-        <label className="block">
-          <span className={labelClass}>Photo URL</span>
-          <input
-            name="image_url"
-            defaultValue={tour?.image_url}
-            placeholder="/media/tours/telaga-waja-rafting.jpg"
-            className={inputClass}
-          />
-        </label>
+        <ImageField
+          name="image_url"
+          label="Photo"
+          defaultValue={tour?.image_url}
+          hint="Upload from your device or paste a link. JPG, PNG, WebP, AVIF or GIF under 4 MB."
+          uploadHint={storageSetupHint()}
+        />
         <label className="block">
           <span className={labelClass}>Photo alt text</span>
           <input name="image_alt" defaultValue={tour?.image_alt} className={inputClass} />
