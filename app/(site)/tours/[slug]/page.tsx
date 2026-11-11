@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/app/components/json-ld";
-import { hasPublicFile } from "@/lib/media";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
+import { getTourPhoto } from "@/lib/tour-photo";
 import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
 export function generateStaticParams() {
@@ -22,6 +22,7 @@ export async function generateMetadata(
   }
 
   const description = `${tour.tagline}. ${formatRupiah(tour.priceAdult)} per adult, including guide, equipment, lunch and hotel pickup.`;
+  const photo = await getTourPhoto(tour.slug, tour.image);
 
   return {
     // Absolute: the tour name already contains the brand, so the layout's
@@ -32,7 +33,7 @@ export async function generateMetadata(
     openGraph: {
       title: `${tour.name} · ${siteConfig.name}`,
       description,
-      ...(hasPublicFile(tour.image.src) ? { images: [{ url: tour.image.src, alt: tour.image.alt }] } : {}),
+      ...(photo ? { images: [{ url: photo.src, alt: photo.alt }] } : {}),
     },
   };
 }
@@ -50,7 +51,8 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
     { name: "Tours", path: "/tours" },
     { name: tour.name, path: `/tours/${tour.slug}` },
   ];
-  const hasImage = hasPublicFile(tour.image.src);
+  // Set in Admin → Tours; falls back to a bundled photo so the header is never empty.
+  const photo = await getTourPhoto(tour.slug, tour.image);
 
   return (
     <article className="container-page py-16 sm:py-20">
@@ -84,13 +86,16 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
         <p className="mt-3 text-lg text-river-700">{tour.tagline}</p>
       </header>
 
-      {hasImage ? (
+      {photo ? (
         <div className="relative mt-8 aspect-16/9 overflow-hidden rounded-3xl bg-river-100">
           <Image
-            src={tour.image.src}
-            alt={tour.image.alt}
+            src={photo.src}
+            alt={photo.alt}
             fill
             priority
+            // Uploaded photos live on Supabase Storage, so skip the optimizer
+            // rather than allowlisting the operator's host at build time.
+            unoptimized
             sizes="(min-width: 1152px) 1152px, 100vw"
             className="object-cover"
           />

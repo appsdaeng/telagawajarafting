@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath, revalidateTag } from "next/cache";
 import { sanitizeRichText } from "@/lib/rich-text";
 import { saveTourAction } from "../actions";
 
@@ -35,5 +36,13 @@ export async function saveTourWithRichTextAction(form: FormData): Promise<void> 
     cleaned.append(key, typeof value === "string" ? clean(key, value) : value);
   }
 
-  await saveTourAction(cleaned);
+  try {
+    await saveTourAction(cleaned);
+  } finally {
+    // `saveTourAction` ends in redirect(), which throws, so refresh the cached
+    // public tour pages here: they read the photo through the `tours` cache tag
+    // and would otherwise keep the old picture until the cache expired.
+    revalidateTag("tours", "max");
+    revalidatePath("/tours", "layout");
+  }
 }
