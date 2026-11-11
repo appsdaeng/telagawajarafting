@@ -73,12 +73,14 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           />
         </div>
 
-        <Area
+        <RichTextField
           name="story"
           label="Full description (one paragraph per line)"
           hint="Used on the tour detail page. Aim for three or four original paragraphs."
+          placeholder="Write a paragraph, then press Enter for the next one…"
           defaultValue={tour?.story}
-          rows={6}
+          multiple
+          addLabel="Add paragraph"
         />
 
         <div className="grid gap-4">
@@ -126,12 +128,14 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           multiple
           addLabel="Add item"
         />
-        <Area
+        <RichTextField
           name="itinerary"
           label="Itinerary (one per line)"
           hint="Shown on the tour page under Highlights. Start each line with the time, e.g. 09:00 Hotel pickup from Ubud."
+          placeholder="09:00 Hotel pickup…"
           defaultValue={tour?.itinerary}
-          rows={6}
+          multiple
+          addLabel="Add step"
         />
         <Area
           name="good_to_know"
@@ -199,7 +203,7 @@ export function TourForm({ tour }: { tour?: TourRow }) {
             name="sort_order"
             type="number"
             defaultValue={tour?.sort_order ?? 0}
-            className={inputClass}
+            className="w-20 rounded-lg border border-river-200 px-2 py-1 text-sm"
           />
         </label>
 

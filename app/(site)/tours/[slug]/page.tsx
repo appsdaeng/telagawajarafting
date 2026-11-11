@@ -4,9 +4,34 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/app/components/json-ld";
 import { TourGallery } from "@/app/components/tour-gallery";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
+import { getTourBySlug } from "@/lib/bookings";
+import { databaseConfigured } from "@/lib/db";
 import { getTourItinerary } from "@/lib/tour-itinerary";
 import { getTourPhoto, getTourPhotos } from "@/lib/tour-photo";
+import type { Tour } from "@/lib/tours";
 import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
+
+function mergeTour(tour: Tour, db: Awaited<ReturnType<typeof getTourBySlug>>) {
+  if (!db) {
+    return tour;
+  }
+
+  return {
+    ...tour,
+    name: db.name?.trim() || tour.name,
+    tagline: db.tagline?.trim() || tour.tagline,
+    description: db.description?.trim() || tour.description,
+    priceAdult: db.price_adult || tour.priceAdult,
+    priceChild: db.price_child || tour.priceChild,
+    duration: db.duration?.trim() || tour.duration,
+    meetingPoint: db.meeting_point?.trim() || tour.meetingPoint,
+    includes: db.includes?.length ? db.includes : tour.includes,
+    highlights: db.highlights?.length ? db.highlights : tour.highlights,
+    story: db.story?.length ? db.story : tour.story,
+    goodToKnow: db.good_to_know?.length ? db.good_to_know : tour.goodToKnow,
+    popular: db.popular ?? tour.popular,
+  };
+}
 
 export function generateStaticParams() {
   return tours.map((tour) => ({ slug: tour.slug }));
@@ -22,17 +47,18 @@ export async function generateMetadata(
     return { title: "Tour not found" };
   }
 
-  const description = `${tour.tagline}. ${formatRupiah(tour.priceAdult)} per adult, including guide, equipment, lunch and hotel pickup.`;
+  const t = mergeTour(tour, databaseConfigured ? await getTourBySlug(slug) : null);
+  const description = `${t.tagline}. ${formatRupiah(t.priceAdult)} per adult, including guide, equipment, lunch and hotel pickup.`;
   const photo = await getTourPhoto(tour.slug, tour.image);
 
   return {
     // Absolute: the tour name already contains the brand, so the layout's
     // "%s | Telaga Waja Rafting" template would repeat it.
-    title: { absolute: `${tour.name} — Prices & Booking` },
+    title: { absolute: `${t.name} — Prices & Booking` },
     description,
     alternates: { canonical: `/tours/${tour.slug}` },
     openGraph: {
-      title: `${tour.name} · ${siteConfig.name}`,
+      title: `${t.name} · ${siteConfig.name}`,
       description,
       ...(photo ? { images: [{ url: photo.src, alt: photo.alt }] } : {}),
     },
@@ -47,10 +73,14 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
     notFound();
   }
 
+  // Admin edits live in Postgres; fall back to the bundled catalogue when a
+  // field is empty so unedited tours still render their original copy.
+  const t = mergeTour(tour, databaseConfigured ? await getTourBySlug(slug) : null);
+
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Tours", path: "/tours" },
-    { name: tour.name, path: `/tours/${tour.slug}` },
+    { name: t.name, path: `/tours/${tour.slug}` },
   ];
   // Set in Admin → Tours; falls back to a bundled photo so the header is never empty.
   const photos = await getTourPhotos(tour.slug, tour.image);
@@ -59,7 +89,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
 
   return (
     <article>
-      <JsonLd data={tourJsonLd(tour)} />
+      <JsonLd data={tourJsonLd(t)} />
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
 
       {/* Full-bleed banner directly under the sticky header, with arrows through
@@ -82,36 +112,36 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
             </li>
             <li aria-hidden="true">/</li>
             <li aria-current="page" className="text-river-900">
-              {tour.name}
+              {t.name}
             </li>
           </ol>
         </nav>
 
         <header className="mt-6 max-w-3xl">
           <h1 className="text-3xl font-semibold tracking-tight text-balance-tight sm:text-4xl">
-            {tour.name}
+            {t.name}
           </h1>
-          <p className="mt-3 text-lg text-river-700">{tour.tagline}</p>
+          <p className="mt-3 text-lg text-river-700">{t.tagline}</p>
         </header>
 
         <div className="mt-10 grid gap-12 lg:grid-cols-[1.6fr_1fr]">
           <div>
             <div className="space-y-4 leading-relaxed text-river-900">
-              {tour.story.map((paragraph) => (
-                <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+              {t.story.map((paragraph) => (
+                <p key={paragraph.slice(0, 40)} dangerouslySetInnerHTML={{ __html: paragraph }} />
               ))}
             </div>
 
             <section className="mt-10">
               <h2 className="text-lg font-semibold tracking-tight">Highlights</h2>
               <ul className="mt-4 space-y-2.5">
-                {tour.highlights.map((item) => (
+                {t.highlights.map((item) => (
                   <li key={item} className="flex gap-3 text-sm leading-relaxed text-river-900">
                     <span
                       aria-hidden="true"
                       className="mt-1.5 size-1.5 shrink-0 rounded-full bg-river-500"
                     />
-                    {item}
+                    <span dangerouslySetInnerHTML={{ __html: item }} />
                   </li>
                 ))}
               </ul>
@@ -142,7 +172,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
             <section className="mt-10">
               <h2 className="text-lg font-semibold tracking-tight">What&apos;s included</h2>
               <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
-                {tour.includes.map((item) => (
+                {t.includes.map((item) => (
                   <li key={item} className="flex gap-2.5 text-sm leading-relaxed text-river-900">
                     <svg
                       aria-hidden="true"
@@ -152,7 +182,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                     >
                       <path d="M8.2 13.9 4.3 10l1.4-1.4 2.5 2.5 5.1-5.1L14.7 7z" />
                     </svg>
-                    {item}
+                    <span dangerouslySetInnerHTML={{ __html: item }} />
                   </li>
                 ))}
               </ul>
@@ -163,17 +193,17 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
               <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-xs tracking-widest text-river-500 uppercase">Duration</dt>
-                  <dd className="mt-1 font-medium">{tour.duration}</dd>
+                  <dd className="mt-1 font-medium">{t.duration}</dd>
                 </div>
                 <div>
                   <dt className="text-xs tracking-widest text-river-500 uppercase">
                     Meeting point
                   </dt>
-                  <dd className="mt-1 font-medium">{tour.meetingPoint}</dd>
+                  <dd className="mt-1 font-medium">{t.meetingPoint}</dd>
                 </div>
               </dl>
               <ul className="mt-4 space-y-2 text-sm leading-relaxed text-river-800">
-                {tour.goodToKnow.map((point) => (
+                {t.goodToKnow.map((point) => (
                   <li key={point}>• {point}</li>
                 ))}
               </ul>
@@ -185,11 +215,11 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
             <dl className="mt-4 space-y-3">
               <div className="flex items-baseline justify-between gap-4 border-b border-river-100 pb-3">
                 <dt className="text-sm text-river-800">Adult</dt>
-                <dd className="text-xl font-semibold">{formatRupiah(tour.priceAdult)}</dd>
+                <dd className="text-xl font-semibold">{formatRupiah(t.priceAdult)}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-sm text-river-800">Child (7–12)</dt>
-                <dd className="text-xl font-semibold">{formatRupiah(tour.priceChild)}</dd>
+                <dd className="text-xl font-semibold">{formatRupiah(t.priceChild)}</dd>
               </div>
             </dl>
             <p className="mt-3 text-xs text-river-600">
@@ -204,7 +234,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
             </Link>
             <a
               href={whatsappLink(
-                `Hi ${siteConfig.name}, I would like to book the ${tour.name}. Date: ___, people: ___`,
+                `Hi ${siteConfig.name}, I would like to book the ${t.name}. Date: ___, people: ___`,
               )}
               target="_blank"
               rel="noopener noreferrer"
