@@ -4,7 +4,8 @@ import {
   inputClass,
   labelClass,
 } from "@/app/admin/_components/ui";
-import { saveTourAction } from "../actions";
+import { RichTextField } from "@/app/admin/_components/rich-text";
+import { saveTourWithRichTextAction } from "./save-tour";
 
 function Area({
   name,
@@ -35,7 +36,7 @@ function Area({
 
 export function TourForm({ tour }: { tour?: TourRow }) {
   return (
-    <form action={saveTourAction} className="space-y-5">
+    <form action={saveTourWithRichTextAction} className="space-y-5">
       {tour ? <input type="hidden" name="id" value={tour.id} /> : null}
 
       <div className="grid gap-4 rounded-2xl border border-river-100 bg-white p-4 shadow-sm sm:grid-cols-2">
@@ -61,23 +62,26 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           <input name="tagline" defaultValue={tour?.tagline} className={inputClass} />
         </label>
 
-        <label className="block sm:col-span-2">
-          <span className={labelClass}>Short description</span>
-          <textarea
+        <div className="sm:col-span-2">
+          <RichTextField
             name="description"
-            rows={3}
+            label="Short description"
+            placeholder="One or two sentences for the tour cards and search results…"
             defaultValue={tour?.description}
-            className={inputClass}
           />
-        </label>
+        </div>
 
-        <Area
-          name="story"
-          label="Full description (one paragraph per line)"
-          hint="Used on the tour detail page. Aim for three or four original paragraphs."
-          defaultValue={tour?.story}
-          rows={6}
-        />
+        <div className="block">
+          <RichTextField
+            name="story"
+            label="Full description (one paragraph per line)"
+            hint="Used on the tour detail page. Aim for three or four original paragraphs."
+            placeholder="Write a paragraph, then press Enter for the next one…"
+            defaultValue={tour?.story}
+            multiple
+            addLabel="Add paragraph"
+          />
+        </div>
 
         <div className="grid gap-4">
           <label className="block">
@@ -108,15 +112,21 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           </label>
         </div>
 
-        <Area
+        <RichTextField
           name="includes"
           label="What's included (one per line)"
+          placeholder="Hotel pickup and drop-off…"
           defaultValue={tour?.includes}
+          multiple
+          addLabel="Add item"
         />
-        <Area
+        <RichTextField
           name="highlights"
           label="Highlights (one per line)"
+          placeholder="Two hours on the river…"
           defaultValue={tour?.highlights}
+          multiple
+          addLabel="Add item"
         />
         <Area
           name="good_to_know"
