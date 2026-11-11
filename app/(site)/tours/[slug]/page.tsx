@@ -4,14 +4,13 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/app/components/json-ld";
 import { TourGallery } from "@/app/components/tour-gallery";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
-import { getTourBySlug } from "@/lib/bookings";
-import { databaseConfigured } from "@/lib/db";
 import { getTourItinerary } from "@/lib/tour-itinerary";
 import { getTourPhoto, getTourPhotos } from "@/lib/tour-photo";
+import { getTourRow } from "@/lib/tour-row";
 import type { Tour } from "@/lib/tours";
 import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
-function mergeTour(tour: Tour, db: Awaited<ReturnType<typeof getTourBySlug>>) {
+function mergeTour(tour: Tour, db: Awaited<ReturnType<typeof getTourRow>>) {
   if (!db) {
     return tour;
   }
@@ -47,7 +46,7 @@ export async function generateMetadata(
     return { title: "Tour not found" };
   }
 
-  const t = mergeTour(tour, databaseConfigured ? await getTourBySlug(slug) : null);
+  const t = mergeTour(tour, await getTourRow(slug));
   const description = `${t.tagline}. ${formatRupiah(t.priceAdult)} per adult, including guide, equipment, lunch and hotel pickup.`;
   const photo = await getTourPhoto(tour.slug, tour.image);
 
@@ -75,7 +74,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
 
   // Admin edits live in Postgres; fall back to the bundled catalogue when a
   // field is empty so unedited tours still render their original copy.
-  const t = mergeTour(tour, databaseConfigured ? await getTourBySlug(slug) : null);
+  const t = mergeTour(tour, await getTourRow(slug));
 
   const crumbs = [
     { name: "Home", path: "/" },
