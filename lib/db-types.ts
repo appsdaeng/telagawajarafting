@@ -30,7 +30,7 @@ export type TourRow = {
   image_url: string;
   image_alt: string;
   gallery_urls: string[];
-  itinerary: string;
+  itinerary: string[];
   seo_title: string;
   seo_description: string;
   popular: boolean;
