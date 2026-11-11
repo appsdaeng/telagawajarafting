@@ -112,9 +112,13 @@ export async function saveTourWithRichTextAction(form: FormData): Promise<void> 
   } finally {
     await saveGallery(cleaned);
     // `saveTourAction` ends in redirect(), which throws, so refresh the cached
-    // public tour pages here: they read the photos through the `tours` cache
-    // tag and would otherwise keep the old pictures until the cache expired.
-    revalidateTag("tours", "max");
-    revalidatePath("/tours", "layout");
+    // public tour pages here. Revalidation must never throw: if it did, it
+    // would replace the redirect and the form would report a failed save.
+    try {
+      revalidateTag("tours", "max");
+      revalidatePath("/tours", "layout");
+    } catch (error) {
+      console.error("[tours] could not revalidate after save", error);
+    }
   }
 }
