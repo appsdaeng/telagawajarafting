@@ -166,7 +166,7 @@ export function TourForm({ tour }: { tour?: TourRow }) {
         </label>
 
         <label className="block">
-          <span className={labelClass">SEO title</span>
+          <span className={labelClass}>SEO title</span>
           <input
             name="seo_title"
             maxLength={60}
@@ -176,7 +176,7 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           <span className="mt-1 block text-xs text-river-500">Under 60 characters.</span>
         </label>
         <label className="block">
-          <span className={labelClass">Meta description</span>
+          <span className={labelClass}>Meta description</span>
           <textarea
             name="seo_description"
             rows={2}
@@ -203,7 +203,7 @@ export function TourForm({ tour }: { tour?: TourRow }) {
             name="sort_order"
             type="number"
             defaultValue={tour?.sort_order ?? 0}
-            className={inputClass}
+            className="w-20 rounded-lg border border-river-200 px-2 py-1 text-sm"
           />
         </label>
 
