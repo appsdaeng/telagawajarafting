@@ -217,7 +217,9 @@ export function RichTextField({
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
-                    if (multiple) addRowAfter(row.id);
+                    // Insert a soft line break inside the current paragraph
+                    // instead of splitting it into a new row.
+                    document.execCommand("insertHTML", false, "<br>");
                     return;
                   }
 
