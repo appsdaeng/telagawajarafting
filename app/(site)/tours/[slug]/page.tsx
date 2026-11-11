@@ -149,22 +149,35 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
             {itinerary.length > 0 ? (
               <section className="mt-10">
                 <h2 className="text-lg font-semibold tracking-tight">Itinerary</h2>
-                <ol className="mt-4 space-y-3">
-                  {itinerary.map((step, index) => (
-                    <li
-                      key={`${index}-${step.slice(0, 24)}`}
-                      className="flex gap-3 text-sm leading-relaxed text-river-900 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-river-50 text-[0.7rem] font-semibold text-river-600"
-                      >
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span dangerouslySetInnerHTML={{ __html: step }} />
-                    </li>
-                  ))}
-                </ol>
+                <div className="relative mt-4 space-y-6 border-l-2 border-river-200 pl-6">
+                  {itinerary.map((step, index) => {
+                    const match = step.match(
+                      /^(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*:?\s*/i,
+                    );
+                    const time = match ? match[1] : null;
+                    const content = match ? step.slice(match[0].length) : step;
+
+                    return (
+                      <div key={`${index}-${step.slice(0, 24)}`} className="relative">
+                        <span
+                          aria-hidden="true"
+                          className="absolute -left-[31px] top-1 grid size-4 place-items-center rounded-full bg-river-600 text-[0.6rem] font-semibold text-white"
+                        >
+                          {time ? "" : "•"}
+                        </span>
+                        {time ? (
+                          <p className="text-xs font-semibold uppercase tracking-wide text-river-500">
+                            {time}
+                          </p>
+                        ) : null}
+                        <div
+                          className="mt-1 text-sm leading-relaxed text-river-900 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                          dangerouslySetInnerHTML={{ __html: content }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </section>
             ) : null}
 
