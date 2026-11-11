@@ -59,10 +59,12 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
       <JsonLd data={tourJsonLd(tour)} />
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
 
-      {/* Full-bleed banner directly under the sticky header: the photo is the
-          first thing guests see, edge to edge on every screen size. */}
+      {/* Full-bleed banner directly under the sticky header. The 5:3 box
+          matches the 1500 × 900 photo the operator uploads, so the picture
+          shows uncropped; it is capped at 1500px on very wide screens and at
+          70vh so it never swallows a laptop screen. */}
       {photo ? (
-        <div className="relative h-[240px] w-full overflow-hidden bg-river-100 sm:h-[380px] lg:h-[480px]">
+        <div className="relative mx-auto aspect-5/3 max-h-[70vh] w-full max-w-[1500px] overflow-hidden bg-river-100">
           <Image
             src={photo.src}
             alt={photo.alt}
