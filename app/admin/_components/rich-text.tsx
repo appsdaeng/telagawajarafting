@@ -23,6 +23,13 @@ type RichTextFieldProps = {
    */
   multiple?: boolean;
   addLabel?: string;
+  /**
+   * When true, the editing area can be dragged taller/shorter by the user.
+   * Only meaningful for the single-paragraph editor.
+   */
+  resizable?: boolean;
+  /** Minimum height of a resizable/single editor, e.g. "8rem". */
+  minHeight?: string;
 };
 
 /**
@@ -38,6 +45,8 @@ export function RichTextField({
   defaultValue,
   multiple = false,
   addLabel = "Add line",
+  resizable = false,
+  minHeight,
 }: RichTextFieldProps) {
   const initial = Array.isArray(defaultValue) ? defaultValue : [defaultValue ?? ""];
   const [rows, setRows] = useState<Row[]>(() =>
@@ -201,7 +210,8 @@ export function RichTextField({
                 suppressContentEditableWarning
                 data-row={row.id}
                 data-placeholder={placeholder ?? (multiple ? addLabel : undefined)}
-                className={editorRowClass}
+                className={`${editorRowClass}${resizable && !multiple ? " resize-y overflow-auto" : ""}`}
+                style={resizable && !multiple ? { minHeight: minHeight ?? "8rem", maxHeight: "24rem" } : undefined}
                 ref={(element) => {
                   if (element && !element.dataset.filled) {
                     element.innerHTML = row.html;

@@ -16,8 +16,8 @@ import { saveTourAction } from "../actions";
  * write happens in the `finally` block.
  */
 
-const PARAGRAPH_FIELDS = new Set(["description"]);
-const LINE_FIELDS = new Set(["story", "includes", "highlights", "itinerary"]);
+const PARAGRAPH_FIELDS = new Set(["description", "itinerary"]);
+const LINE_FIELDS = new Set(["story", "includes", "highlights"]);
 
 function clean(key: string, value: string): string {
   if (PARAGRAPH_FIELDS.has(key)) {

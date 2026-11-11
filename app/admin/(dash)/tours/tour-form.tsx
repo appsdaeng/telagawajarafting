@@ -130,12 +130,12 @@ export function TourForm({ tour }: { tour?: TourRow }) {
         />
         <RichTextField
           name="itinerary"
-          label="Itinerary (one paragraph per line)"
-          hint="Shown on the tour page under Highlights. Each line is a step; use bullet/numbered lists inside a line if needed. Start with the time, e.g. 09:00 Hotel pickup from Ubud."
+          label="Itinerary"
+          hint="Rich text. Use bullets/numbered lists for sub-points; start lines with a time, e.g. 09:00 Hotel pickup from Ubud."
           placeholder="09:00 Hotel pickup…"
           defaultValue={tour?.itinerary}
-          multiple
-          addLabel="Add step"
+          resizable
+          minHeight="10rem"
         />
         <Area
           name="good_to_know"
@@ -166,7 +166,7 @@ export function TourForm({ tour }: { tour?: TourRow }) {
         </label>
 
         <label className="block">
-          <span className={labelClass}>SEO title</span>
+          <span className={labelClass">SEO title</span>
           <input
             name="seo_title"
             maxLength={60}
@@ -176,7 +176,7 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           <span className="mt-1 block text-xs text-river-500">Under 60 characters.</span>
         </label>
         <label className="block">
-          <span className={labelClass}>Meta description</span>
+          <span className={labelClass">Meta description</span>
           <textarea
             name="seo_description"
             rows={2}
@@ -203,7 +203,7 @@ export function TourForm({ tour }: { tour?: TourRow }) {
             name="sort_order"
             type="number"
             defaultValue={tour?.sort_order ?? 0}
-            className="w-20 rounded-lg border border-river-200 px-2 py-1 text-sm"
+            className={inputClass}
           />
         </label>
 
