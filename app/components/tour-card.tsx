@@ -1,23 +1,27 @@
 import Image from "next/image";
 import Link from "next/link";
-import { hasPublicFile } from "@/lib/media";
+import { getTourPhoto } from "@/lib/tour-photo";
 import { formatRupiah, type Tour } from "@/lib/tours";
 
 /**
  * Tour card used on the home page and the tours index.
  * "Book now" carries the tour into the booking widget on the home page.
+ * The photo is the cover the operator chose in Admin → Tours.
  */
-export function TourCard({ tour }: { tour: Tour }) {
-  const hasImage = hasPublicFile(tour.image.src);
+export async function TourCard({ tour }: { tour: Tour }) {
+  const photo = await getTourPhoto(tour.slug, tour.image);
 
   return (
     <li className="group relative flex flex-col overflow-hidden rounded-3xl border border-river-100 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="relative h-44 overflow-hidden bg-river-900">
-        {hasImage ? (
+        {photo ? (
           <Image
-            src={tour.image.src}
-            alt={tour.image.alt}
+            src={photo.src}
+            alt={photo.alt}
             fill
+            // Uploaded photos live on Supabase Storage: skip the optimizer
+            // rather than allowlisting the operator's host at build time.
+            unoptimized
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />

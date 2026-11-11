@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { databaseConfigured, sql } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/rich-text";
 import { saveTourAction } from "../actions";
 
@@ -8,6 +9,11 @@ import { saveTourAction } from "../actions";
  * The tour form posts rich text as HTML. Clean the four rich text fields here
  * before handing the form to `saveTourAction`, so the database only ever holds
  * the inline tags the editor can produce.
+ *
+ * The gallery is written here too rather than in `saveTourAction`: the action
+ * owns the tour columns, while this wrapper has the whole form including the
+ * photo list, and `saveTourAction` ends in redirect() (which throws), so the
+ * write happens in the `finally` block.
  */
 
 const PARAGRAPH_FIELDS = new Set(["description"]);
@@ -29,6 +35,54 @@ function clean(key: string, value: string): string {
   return value;
 }
 
+/** Mirrors the slug rule in `saveTourAction`, for the just-created tour. */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
+}
+
+function readGallery(form: FormData): string[] {
+  try {
+    const parsed: unknown = JSON.parse(String(form.get("gallery_urls") ?? "[]"));
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .slice(0, 30);
+  } catch {
+    return [];
+  }
+}
+
+async function saveGallery(form: FormData): Promise<void> {
+  const gallery = readGallery(form);
+  const id = String(form.get("id") ?? "").trim();
+  const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
+
+  if (!databaseConfigured || (!id && !slug)) {
+    return;
+  }
+
+  try {
+    if (id) {
+      await sql`update public.tours set gallery_urls = ${gallery}, updated_at = now() where id = ${id}`;
+    } else {
+      await sql`update public.tours set gallery_urls = ${gallery}, updated_at = now() where slug = ${slug}`;
+    }
+  } catch (error) {
+    console.error("[tours] could not save the gallery", error);
+  }
+}
+
 export async function saveTourWithRichTextAction(form: FormData): Promise<void> {
   const cleaned = new FormData();
 
@@ -39,9 +93,10 @@ export async function saveTourWithRichTextAction(form: FormData): Promise<void> 
   try {
     await saveTourAction(cleaned);
   } finally {
+    await saveGallery(cleaned);
     // `saveTourAction` ends in redirect(), which throws, so refresh the cached
-    // public tour pages here: they read the photo through the `tours` cache tag
-    // and would otherwise keep the old picture until the cache expired.
+    // public tour pages here: they read the photos through the `tours` cache
+    // tag and would otherwise keep the old pictures until the cache expired.
     revalidateTag("tours", "max");
     revalidatePath("/tours", "layout");
   }

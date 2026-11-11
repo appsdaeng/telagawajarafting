@@ -1,4 +1,4 @@
-/** Row shapes returned by the queries in `lib/`. Mirrors db/schema.sql. */
+/** Row shapes returned by the queries in `lib/`. Mirrors db/migrations/*.sql. */
 
 export type Role = "ADMIN" | "STAFF";
 
@@ -29,6 +29,7 @@ export type TourRow = {
   meeting_point: string;
   image_url: string;
   image_alt: string;
+  gallery_urls: string[];
   seo_title: string;
   seo_description: string;
   popular: boolean;

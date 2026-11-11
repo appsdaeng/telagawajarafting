@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/app/components/json-ld";
+import { TourGallery } from "@/app/components/tour-gallery";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
-import { getTourPhoto } from "@/lib/tour-photo";
+import { getTourPhoto, getTourPhotos } from "@/lib/tour-photo";
 import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
 export function generateStaticParams() {
@@ -52,31 +52,16 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
     { name: tour.name, path: `/tours/${tour.slug}` },
   ];
   // Set in Admin → Tours; falls back to a bundled photo so the header is never empty.
-  const photo = await getTourPhoto(tour.slug, tour.image);
+  const photos = await getTourPhotos(tour.slug, tour.image);
 
   return (
     <article>
       <JsonLd data={tourJsonLd(tour)} />
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
 
-      {/* Full-bleed banner directly under the sticky header: 900px tall on
-          desktop and edge to edge at every width. Phones get a shorter box so
-          the banner still fits on screen, and object-cover handles the crop. */}
-      {photo ? (
-        <div className="relative h-[400px] w-full overflow-hidden bg-river-100 sm:h-[600px] lg:h-[900px]">
-          <Image
-            src={photo.src}
-            alt={photo.alt}
-            fill
-            priority
-            // Uploaded photos live on Supabase Storage, so skip the optimizer
-            // rather than allowlisting the operator's host at build time.
-            unoptimized
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
-      ) : null}
+      {/* Full-bleed banner directly under the sticky header, with arrows through
+          the operator's gallery. The first photo is the cover that cards use. */}
+      <TourGallery images={photos} />
 
       <div className="container-page pt-8 pb-16 sm:pt-10 sm:pb-20">
         <nav aria-label="Breadcrumb" className="text-sm text-river-600">
