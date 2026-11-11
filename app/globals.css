@@ -51,3 +51,10 @@ body {
 @utility text-balance-tight {
   text-wrap: balance;
 }
+
+/* Placeholder text for the admin rich text editors (empty contenteditable). */
+.rich-text:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-river-400);
+  pointer-events: none;
+}
