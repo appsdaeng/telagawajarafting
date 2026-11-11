@@ -130,12 +130,10 @@ export function TourForm({ tour }: { tour?: TourRow }) {
         />
         <RichTextField
           name="itinerary"
-          label="Itinerary (one per line)"
-          hint="Shown on the tour page under Highlights. Start each line with the time, e.g. 09:00 Hotel pickup from Ubud."
+          label="Itinerary"
+          hint="Shown on the tour page under Highlights. Use paragraphs or bullet/numbered lists; start each line with the time, e.g. 09:00 Hotel pickup from Ubud."
           placeholder="09:00 Hotel pickup…"
           defaultValue={tour?.itinerary}
-          multiple
-          addLabel="Add step"
         />
         <Area
           name="good_to_know"

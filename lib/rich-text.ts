@@ -7,7 +7,7 @@
  * safe to render later without trusting the browser.
  */
 
-const ALLOWED_TAGS = new Set(["b", "strong", "i", "em", "u", "br", "a"]);
+const ALLOWED_TAGS = new Set(["b", "strong", "i", "em", "u", "br", "a", "ul", "ol", "li"]);
 
 const TAG_PATTERN = /<\/?([a-zA-Z][a-zA-Z0-9]*)((?:"[^"]*"|'[^']*'|[^"'>])*)>/g;
 

@@ -16,8 +16,8 @@ import { saveTourAction } from "../actions";
  * write happens in the `finally` block.
  */
 
-const PARAGRAPH_FIELDS = new Set(["description"]);
-const LINE_FIELDS = new Set(["story", "includes", "highlights", "itinerary"]);
+const PARAGRAPH_FIELDS = new Set(["description", "itinerary"]);
+const LINE_FIELDS = new Set(["story", "includes", "highlights"]);
 
 function clean(key: string, value: string): string {
   if (PARAGRAPH_FIELDS.has(key)) {
@@ -73,7 +73,7 @@ function readLines(form: FormData, field: string): string[] {
 
 async function saveGallery(form: FormData): Promise<void> {
   const gallery = readGallery(form);
-  const itinerary = readLines(form, "itinerary");
+  const itinerary = String(form.get("itinerary") ?? "").trim();
   const id = String(form.get("id") ?? "").trim();
   const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
 

@@ -138,6 +138,26 @@ export function RichTextField({
           ))}
           <button
             type="button"
+            title="Bullet list"
+            aria-label="Bullet list"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => command("insertUnorderedList")}
+            className={toolbarButton}
+          >
+            •
+          </button>
+          <button
+            type="button"
+            title="Numbered list"
+            aria-label="Numbered list"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => command("insertOrderedList")}
+            className={toolbarButton}
+          >
+            1.
+          </button>
+          <button
+            type="button"
             title="Insert link"
             aria-label="Insert link"
             onMouseDown={(event) => event.preventDefault()}

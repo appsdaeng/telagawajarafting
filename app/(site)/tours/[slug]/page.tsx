@@ -5,8 +5,8 @@ import { JsonLd } from "@/app/components/json-ld";
 import { TourGallery } from "@/app/components/tour-gallery";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
 import { getTourItinerary } from "@/lib/tour-itinerary";
-import { getTourPhoto, getTourPhotos } from "@/lib/tour-photo";
 import { getTourRow } from "@/lib/tour-row";
+import { getTourPhoto, getTourPhotos } from "@/lib/tour-photo";
 import type { Tour } from "@/lib/tours";
 import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
@@ -146,25 +146,13 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
               </ul>
             </section>
 
-            {itinerary.length > 0 ? (
+            {itinerary ? (
               <section className="mt-10">
                 <h2 className="text-lg font-semibold tracking-tight">Itinerary</h2>
-                <ol className="mt-4 space-y-3">
-                  {itinerary.map((step, index) => (
-                    <li
-                      key={`${index}-${step.slice(0, 24)}`}
-                      className="flex gap-3 text-sm leading-relaxed text-river-900"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-river-50 text-[0.7rem] font-semibold text-river-600"
-                      >
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span dangerouslySetInnerHTML={{ __html: step }} />
-                    </li>
-                  ))}
-                </ol>
+                <div
+                  className="mt-4 space-y-2 text-sm leading-relaxed text-river-900 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                  dangerouslySetInnerHTML={{ __html: itinerary }}
+                />
               </section>
             ) : null}
 
