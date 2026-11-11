@@ -11,11 +11,17 @@ export function GalleryStrip({ section: { images } }: GalleryStripProps) {
   return (
     <section className="container-page pb-16 pt-14 sm:pt-16">
       <div className="mx-auto max-w-2xl text-center">
-        <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">Good Words</p>
+        <p className="text-xs font-bold tracking-[0.2em] text-river-600 uppercase">
+          ADVENTURE TODAY. MEMORIES FOREVER
+        </p>
         <h2 className="mt-3 text-3xl leading-tight font-extrabold tracking-tight uppercase sm:text-4xl">
-          Moment You Never Forget
+          Telaga Waja Rafting - Moments You'll Never Forget
         </h2>
-        <p className="mt-4 text-sm text-river-800">Slide through moments from the river.</p>
+        <p className="mt-4 text-sm leading-relaxed text-river-800 sm:text-base">
+          Feel the excitement, conquer the rapids, and discover the natural beauty of Telaga Waja
+          River. Enjoy thrilling white-water rafting, easy river access, and unforgettable moments
+          with your loved ones
+        </p>
       </div>
 
       <div className="mt-10 relative overflow-hidden rounded-3xl bg-river-50 p-6 sm:p-10">
