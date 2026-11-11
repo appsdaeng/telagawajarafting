@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { GalleryImage } from "@/lib/content";
 
 type GallerySlideshowProps = {
@@ -12,57 +12,54 @@ type GallerySlideshowProps = {
 };
 
 /**
- * Slide-through gallery: three photos at a time on a wide screen, one at a
- * time on a phone, with previous/next arrows and swipe. Shows at most 15 photos
- * and links to the full gallery page, so the home page never turns into a wall
- * of images.
+ * Paged gallery: three photos per page on a wide screen, two on a tablet and
+ * one on a phone. The previous/next arrows move a whole page — there is no
+ * scrolling strip and no scrollbar. Shows at most 15 photos and links to the
+ * full gallery page, so the home page never turns into a wall of images.
  */
 export function GallerySlideshow({
   images,
   title = "Moment You Never Forget",
   eyebrow = "UNFORGETTABLE MOMENTS START HERE",
 }: GallerySlideshowProps) {
-  const trackRef = useRef<HTMLUListElement>(null);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(false);
+  const [perPage, setPerPage] = useState(3);
+  const [page, setPage] = useState(0);
 
   const slides = images.slice(0, 15);
 
-  const updateArrows = useCallback(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    const maxScroll = track.scrollWidth - track.clientWidth;
-    setCanPrev(track.scrollLeft > 4);
-    setCanNext(track.scrollLeft < maxScroll - 4);
-  }, []);
-
+  // Match the Tailwind breakpoints used for the card widths below.
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
+    const wide = window.matchMedia("(min-width: 1024px)");
+    const medium = window.matchMedia("(min-width: 640px)");
 
-    updateArrows();
-    track.addEventListener("scroll", updateArrows, { passive: true });
+    const sync = () => setPerPage(wide.matches ? 3 : medium.matches ? 2 : 1);
 
-    const observer = new ResizeObserver(updateArrows);
-    observer.observe(track);
+    sync();
+    wide.addEventListener("change", sync);
+    medium.addEventListener("change", sync);
 
     return () => {
-      track.removeEventListener("scroll", updateArrows);
-      observer.disconnect();
+      wide.removeEventListener("change", sync);
+      medium.removeEventListener("change", sync);
     };
-  }, [updateArrows, slides.length]);
+  }, []);
 
-  /** Move by exactly one card (plus the gap) so a slide is never cut in half. */
-  const step = (direction: 1 | -1) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const card = track.firstElementChild as HTMLElement | null;
-    const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 16;
-    const distance = card ? card.getBoundingClientRect().width + gap : track.clientWidth * 0.8;
-    track.scrollBy({ left: direction * distance, behavior: "smooth" });
-  };
+  const pages: GalleryImage[][] = [];
+  for (let start = 0; start < slides.length; start += perPage) {
+    pages.push(slides.slice(start, start + perPage));
+  }
 
-  if (slides.length === 0) return null;
+  const pageCount = pages.length;
+
+  // A narrower window means more pages; never stay on a page that is gone.
+  useEffect(() => {
+    setPage((current) => Math.min(current, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
+
+  if (slides.length === 0 || pageCount === 0) return null;
+
+  const canPrev = page > 0;
+  const canNext = page < pageCount - 1;
 
   const arrowClass =
     "absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-river-800 shadow-md ring-1 ring-river-100 transition disabled:cursor-default disabled:opacity-0 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-river-600";
@@ -87,7 +84,7 @@ export function GallerySlideshow({
       <div className="relative mt-10">
         <button
           type="button"
-          onClick={() => step(-1)}
+          onClick={() => setPage((current) => Math.max(0, current - 1))}
           disabled={!canPrev}
           aria-label="Previous photos"
           className={`${arrowClass} -left-2 sm:-left-4`}
@@ -106,7 +103,7 @@ export function GallerySlideshow({
 
         <button
           type="button"
-          onClick={() => step(1)}
+          onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
           disabled={!canNext}
           aria-label="Next photos"
           className={`${arrowClass} -right-2 sm:-right-4`}
@@ -123,27 +120,37 @@ export function GallerySlideshow({
           </svg>
         </button>
 
-        <ul
-          ref={trackRef}
-          aria-label="Gallery photos"
-          className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-4 sm:-mx-6 sm:px-6 lg:gap-6"
-        >
-          {slides.map((image) => (
-            <li
-              key={image.src}
-              className="relative aspect-4/3 w-[78vw] shrink-0 snap-start overflow-hidden rounded-2xl bg-river-100 ring-1 ring-river-100 sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-3rem)/3)]"
-            >
-              <Image
-                src={image.src}
-                alt={image.alt}
-                fill
-                unoptimized
-                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 78vw"
-                className="object-cover"
-              />
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-hidden">
+          <div
+            className="flex transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(-${page * 100}%)` }}
+          >
+            {pages.map((group, pageIndex) => (
+              <ul
+                key={`page-${pageIndex}`}
+                aria-label={pageIndex === 0 ? "Gallery photos" : undefined}
+                aria-hidden={pageIndex !== page}
+                className="flex w-full shrink-0 gap-4 lg:gap-6"
+              >
+                {group.map((image) => (
+                  <li
+                    key={image.src}
+                    className="relative aspect-4/3 w-full shrink-0 overflow-hidden rounded-2xl bg-river-100 ring-1 ring-river-100 sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-3rem)/3)]"
+                  >
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      unoptimized
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover"
+                    />
+                  </li>
+                ))}
+              </ul>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 flex justify-center">
