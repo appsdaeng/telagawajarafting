@@ -132,7 +132,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                       >
                         {String(index + 1).padStart(2, "0")}
                       </span>
-                      <span>{step}</span>
+                      <span dangerouslySetInnerHTML={{ __html: step }} />
                     </li>
                   ))}
                 </ol>

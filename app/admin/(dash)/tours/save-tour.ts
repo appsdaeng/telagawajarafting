@@ -17,7 +17,7 @@ import { saveTourAction } from "../actions";
  */
 
 const PARAGRAPH_FIELDS = new Set(["description"]);
-const LINE_FIELDS = new Set(["story", "includes", "highlights"]);
+const LINE_FIELDS = new Set(["story", "includes", "highlights", "itinerary"]);
 
 function clean(key: string, value: string): string {
   if (PARAGRAPH_FIELDS.has(key)) {

@@ -130,12 +130,14 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           multiple
           addLabel="Add item"
         />
-        <Area
+        <RichTextField
           name="itinerary"
           label="Itinerary (one per line)"
           hint="Shown on the tour page under Highlights. Start each line with the time, e.g. 09:00 Hotel pickup from Ubud."
+          placeholder="09:00 Hotel pickup…"
           defaultValue={tour?.itinerary}
-          rows={6}
+          multiple
+          addLabel="Add step"
         />
         <Area
           name="good_to_know"
