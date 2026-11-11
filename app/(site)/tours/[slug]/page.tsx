@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/app/components/json-ld";
 import { TourGallery } from "@/app/components/tour-gallery";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
+import { getTourItinerary } from "@/lib/tour-itinerary";
 import { getTourPhoto, getTourPhotos } from "@/lib/tour-photo";
 import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
 
@@ -53,6 +54,8 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
   ];
   // Set in Admin → Tours; falls back to a bundled photo so the header is never empty.
   const photos = await getTourPhotos(tour.slug, tour.image);
+  // Set in Admin → Tours, shown under Highlights; empty means no section at all.
+  const itinerary = await getTourItinerary(tour.slug);
 
   return (
     <article>
@@ -113,6 +116,28 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                 ))}
               </ul>
             </section>
+
+            {itinerary.length > 0 ? (
+              <section className="mt-10">
+                <h2 className="text-lg font-semibold tracking-tight">Itinerary</h2>
+                <ol className="mt-4 space-y-3">
+                  {itinerary.map((step, index) => (
+                    <li
+                      key={`${index}-${step.slice(0, 24)}`}
+                      className="flex gap-3 text-sm leading-relaxed text-river-900"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-river-50 text-[0.7rem] font-semibold text-river-600"
+                      >
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
 
             <section className="mt-10">
               <h2 className="text-lg font-semibold tracking-tight">What&apos;s included</h2>

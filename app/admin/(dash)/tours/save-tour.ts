@@ -63,8 +63,17 @@ function readGallery(form: FormData): string[] {
   }
 }
 
+function readLines(form: FormData, field: string): string[] {
+  return String(form.get(field) ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 40);
+}
+
 async function saveGallery(form: FormData): Promise<void> {
   const gallery = readGallery(form);
+  const itinerary = readLines(form, "itinerary");
   const id = String(form.get("id") ?? "").trim();
   const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
 
@@ -74,12 +83,20 @@ async function saveGallery(form: FormData): Promise<void> {
 
   try {
     if (id) {
-      await sql`update public.tours set gallery_urls = ${gallery}, updated_at = now() where id = ${id}`;
+      await sql`
+        update public.tours
+        set gallery_urls = ${gallery}, itinerary = ${itinerary}, updated_at = now()
+        where id = ${id}
+      `;
     } else {
-      await sql`update public.tours set gallery_urls = ${gallery}, updated_at = now() where slug = ${slug}`;
+      await sql`
+        update public.tours
+        set gallery_urls = ${gallery}, itinerary = ${itinerary}, updated_at = now()
+        where slug = ${slug}
+      `;
     }
   } catch (error) {
-    console.error("[tours] could not save the gallery", error);
+    console.error("[tours] could not save the gallery or itinerary", error);
   }
 }
 

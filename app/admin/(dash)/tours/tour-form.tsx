@@ -131,6 +131,13 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           addLabel="Add item"
         />
         <Area
+          name="itinerary"
+          label="Itinerary (one per line)"
+          hint="Shown on the tour page under Highlights. Start each line with the time, e.g. 09:00 Hotel pickup from Ubud."
+          defaultValue={tour?.itinerary}
+          rows={6}
+        />
+        <Area
           name="good_to_know"
           label="Good to know (one per line)"
           defaultValue={tour?.good_to_know}
