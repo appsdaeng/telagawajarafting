@@ -5,7 +5,9 @@ import { galleryHeroImage } from "@/lib/content";
 import { getGalleryImages } from "@/lib/gallery";
 
 export const metadata = {
-  title: "Gallery",
+  // `absolute` keeps the layout's "%s | Telaga Waja Rafting" suffix from
+  // repeating the site name in the page title.
+  title: { absolute: "Telaga Waja Rafting - Moments You'll Never Forget" },
   description: "Moments from the Telaga Waja river in Bali, uploaded by the operator.",
 };
 
