@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/app/components/json-ld";
 import { TourGallery } from "@/app/components/tour-gallery";
+import { TourOptionPicker } from "@/app/components/tour-option-picker";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
 import { getTourItinerary } from "@/lib/tour-itinerary";
 import { getTourRow } from "@/lib/tour-row";
 import { getTourPhoto, getTourPhotos } from "@/lib/tour-photo";
 import type { Tour } from "@/lib/tours";
-import { formatRupiah, getTour, siteConfig, tours, whatsappLink } from "@/lib/tours";
+import { formatRupiah, getTour, siteConfig, tours } from "@/lib/tours";
 
 function mergeTour(tour: Tour, db: Awaited<ReturnType<typeof getTourRow>>) {
   if (!db) {
@@ -102,13 +103,13 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
         <nav aria-label="Breadcrumb" className="text-sm text-river-600">
           <ol className="flex flex-wrap items-center gap-2">
             <li>
-              <Link href="/" className="text-river-900 hover:underline">
+              <Link href="/" className="hover:text-river-900 hover:underline">
                 Home
               </Link>
             </li>
             <li aria-hidden="true">/</li>
             <li>
-              <Link href="/tours" className="text-river-900 hover:underline">
+              <Link href="/tours" className="hover:text-river-900 hover:underline">
                 Tours
               </Link>
             </li>
@@ -227,69 +228,14 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
 
           <aside className="h-fit rounded-3xl border border-river-100 p-6 lg:sticky lg:top-24">
             <h2 className="text-sm font-semibold tracking-widest text-river-500 uppercase">Price</h2>
-            <dl className="mt-4 space-y-3">
-              <div className="flex items-baseline justify-between gap-4 border-b border-river-100 pb-3">
-                <dt className="text-sm text-river-800">Adult</dt>
-                <dd className="text-xl font-semibold">{formatRupiah(t.priceAdult)}</dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-sm text-river-800">Child (7–12)</dt>
-                <dd className="text-xl font-semibold">{formatRupiah(t.priceChild)}</dd>
-              </div>
-            </dl>
-
-            {options.length > 0 ? (
-              <div className="mt-5 border-t border-river-100 pt-4">
-                <h2 className="text-sm font-semibold tracking-widest text-river-500 uppercase">
-                  Options
-                </h2>
-                <ul className="mt-3 space-y-3">
-                  {options.map((option, index) => (
-                    <li key={`${index}-${option.name}`}>
-                      <div className="flex items-baseline justify-between gap-3">
-                        <span className="text-sm font-medium text-river-900">
-                          {option.name || "Option"}
-                        </span>
-                        {option.price > 0 ? (
-                          <span className="text-sm font-semibold">
-                            {formatRupiah(option.price)}
-                          </span>
-                        ) : null}
-                      </div>
-                      {option.field ? (
-                        <p className="text-xs font-medium text-river-500">{option.field}</p>
-                      ) : null}
-                      {option.description ? (
-                        <p className="mt-1 text-xs leading-relaxed text-river-700">
-                          {option.description}
-                        </p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <p className="mt-3 text-xs text-river-600">
-              Per person, including equipment, guide, lunch and hotel pickup. Paid at base camp on
-              the day — no card details online.
-            </p>
-            <Link
-              href={{ pathname: "/", query: { tour: tour.slug }, hash: "book" }}
-              className="mt-6 block rounded-full bg-river-600 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-river-700"
-            >
-              Check availability
-            </Link>
-            <a
-              href={whatsappLink(
-                `Hi ${siteConfig.name}, I would like to book the ${t.name}. Date: ___, people: ___`,
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block rounded-full border border-river-300 px-5 py-2.5 text-center text-sm font-semibold text-river-800 transition-colors hover:bg-river-50"
-            >
-              Ask on WhatsApp
-            </a>
+            <TourOptionPicker
+              tourSlug={tour.slug}
+              tourName={t.name}
+              siteName={siteConfig.name}
+              options={options}
+              adultPrice={t.priceAdult}
+              childPrice={t.priceChild}
+            />
           </aside>
         </div>
       </div>
