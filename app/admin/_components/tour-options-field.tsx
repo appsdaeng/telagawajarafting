@@ -16,11 +16,13 @@ function isBlank(option: TourOption): boolean {
 }
 
 /**
- * Extra pricing options for a tour (tiers, add-ons, private groups).
+ * Bookable options for a tour — the variants a guest picks between, such as
+ * "Rafting only" and "Rafting with hotel transfer".
  *
- * Each card is one option: name, description, tier price and the field it
- * applies to. The whole list is posted as JSON in `pricing_options`; the save
- * action validates it and stores it on the tour.
+ * Each card is one option: name, description (what it includes), tier price and
+ * the field it applies to (e.g. per person). The whole list is posted as JSON in
+ * `pricing_options`; the save action validates it and stores it on the tour.
+ * Date-based peak prices belong in Availability, not here.
  */
 export function TourOptionsField({ defaultValue }: { defaultValue?: TourOption[] | null }) {
   const [options, setOptions] = useState<TourOption[]>(() =>
@@ -50,10 +52,12 @@ export function TourOptionsField({ defaultValue }: { defaultValue?: TourOption[]
     <div className="block">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <span className={labelClass}>Tour / pricing options</span>
+          <span className={labelClass}>Tour options</span>
           <p className="mt-1 text-xs text-river-500">
-            Optional tiers or add-ons for this tour, such as a private group rate or extra photo
-            package. Leave empty when the adult and child prices are the whole story.
+            The variants a guest can book, such as “Rafting only” or “Rafting with hotel
+            transfer”. Each option carries its own description and tier price, which become the
+            selectable options on the tour page. Leave empty when the adult and child prices are
+            the only choice.
           </p>
         </div>
         <button type="button" onClick={addOption} className={buttonSecondary}>
@@ -99,7 +103,7 @@ export function TourOptionsField({ defaultValue }: { defaultValue?: TourOption[]
                   <input
                     value={option.field}
                     onChange={(event) => update(index, { field: event.target.value })}
-                    placeholder="Per person, min 4 pax"
+                    placeholder="Per person / per group"
                     className={inputClass}
                   />
                 </label>
@@ -124,7 +128,7 @@ export function TourOptionsField({ defaultValue }: { defaultValue?: TourOption[]
                     rows={2}
                     value={option.description}
                     onChange={(event) => update(index, { description: event.target.value })}
-                    placeholder="What the option includes and when it applies…"
+                    placeholder="What this option includes, e.g. pickup from Ubud, Kuta and Seminyak plus lunch…"
                     className={inputClass}
                   />
                 </label>

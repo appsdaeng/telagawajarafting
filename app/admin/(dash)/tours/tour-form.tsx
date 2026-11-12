@@ -1,8 +1,6 @@
 import type { TourRow } from "@/lib/db-types";
-import Link from "next/link";
 import {
   buttonPrimary,
-  buttonSecondary,
   inputClass,
   labelClass,
 } from "@/app/admin/_components/ui";
@@ -113,24 +111,6 @@ export function TourForm({ tour }: { tour?: TourRow }) {
             <span className={labelClass}>Duration</span>
             <input name="duration" defaultValue={tour?.duration} className={inputClass} />
           </label>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-river-100 bg-river-50/60 px-3 py-2">
-            <span className="text-xs text-river-600">
-              Peak-date or group price? Add it under Availability.
-            </span>
-            <Link
-              href={
-                tour
-                  ? `/admin/availability?tour=${tour.id}#special-prices`
-                  : "/admin/availability#special-prices"
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${buttonSecondary} px-2.5 py-1 text-xs`}
-            >
-              Option
-            </Link>
-          </div>
         </div>
 
         <RichTextField
