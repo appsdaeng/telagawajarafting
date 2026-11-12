@@ -38,9 +38,9 @@ export function SiteHeader() {
               </svg>
             </span>
             <span className="text-sm leading-tight font-semibold tracking-tight whitespace-nowrap sm:text-base">
-              Telaga Waja
+              Telaga Waja Rafting
               <span className="block text-[0.65rem] font-medium tracking-widest text-river-600 uppercase sm:text-[0.7rem]">
-                Rafting
+                Official Rafting Provider
               </span>
             </span>
           </Link>
