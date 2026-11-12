@@ -16,6 +16,7 @@ type Payload = {
   phone?: string;
   hotel?: string;
   notes?: string;
+  option?: string;
 };
 
 function clean(value: unknown, max = 200): string {
@@ -52,6 +53,7 @@ export async function POST(request: Request): Promise<Response> {
   const phone = clean(body.phone, 40);
   const hotel = clean(body.hotel, 160);
   const notes = clean(body.notes, 800);
+  const optionName = clean(body.option, 120);
 
   if (!name) {
     return NextResponse.json({ error: "A name is required." }, { status: 400 });
@@ -87,6 +89,26 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "Tour not found." }, { status: 404 });
   }
 
+  const choices = Array.isArray(tour.pricing_options) ? tour.pricing_options : [];
+  const option = optionName
+    ? (choices.find(
+        (choice) => choice.name.trim().toLowerCase() === optionName.toLowerCase(),
+      ) ?? null)
+    : null;
+
+  if (optionName && !option) {
+    return NextResponse.json(
+      { error: "That option is no longer available. Pick another one." },
+      { status: 409 },
+    );
+  }
+
+  // The chosen option is part of the reservation, so staff see it in the notes
+  // and everyone is charged the option's tier price.
+  const bookingNotes = [option ? `Option: ${option.name}` : "", notes]
+    .filter(Boolean)
+    .join(" · ");
+
   try {
     const booking = await createBooking({
       tourId: tour.id,
@@ -98,7 +120,8 @@ export async function POST(request: Request): Promise<Response> {
       guestEmail: email,
       guestPhone: phone,
       hotel,
-      notes,
+      notes: bookingNotes,
+      unitPrice: option?.price,
       source: "ONLINE",
     });
 
@@ -119,7 +142,7 @@ export async function POST(request: Request): Promise<Response> {
         items: [
           {
             id: tour.slug,
-            name: `${tour.name} · ${date} ${time}`,
+            name: `${tour.name}${option ? ` · ${option.name}` : ""} · ${date} ${time}`,
             price: amount,
             quantity: 1,
           },

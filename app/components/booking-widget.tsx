@@ -11,11 +11,19 @@ import {
 } from "@/lib/availability";
 import { formatRupiah, siteConfig, whatsappLink } from "@/lib/tours";
 
+type PricingChoice = {
+  name: string;
+  description: string;
+  field: string;
+  price: number;
+};
+
 type Option = {
   slug: string;
   name: string;
   priceAdult: number;
   priceChild: number;
+  pricingOptions?: PricingChoice[];
 };
 
 type Slot = {
@@ -42,6 +50,7 @@ const readSearchOnServer = () => "";
  */
 export function BookingWidget({ options }: { options: Option[] }) {
   const [chosenSlug, setChosenSlug] = useState<string | null>(null);
+  const [chosenOption, setChosenOption] = useState<string | null>(null);
   const [date, setDate] = useState("");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
@@ -67,7 +76,19 @@ export function BookingWidget({ options }: { options: Option[] }) {
 
   const tourSlug = chosenSlug ?? defaultSlug;
   const tour = options.find((option) => option.slug === tourSlug) ?? options[0];
-  const total = tour ? quote(tour, adults, children) : 0;
+
+  // A tour option picked on the tour page arrives as `?option=Name`; the guest
+  // can still change it here. Everyone is charged the option's tier price.
+  const requestedOption = new URLSearchParams(search).get("option");
+  const pricingOptions = tour?.pricingOptions ?? [];
+  const wantedOption = chosenOption ?? requestedOption ?? "";
+  const selectedOption =
+    pricingOptions.find((choice) => choice.name === wantedOption) ?? pricingOptions[0] ?? null;
+  const total = tour
+    ? selectedOption && selectedOption.price > 0
+      ? selectedOption.price * (adults + children)
+      : quote(tour, adults, children)
+    : 0;
 
   // Date bounds are a DOM detail, so they are applied to the input directly
   // rather than held in state (which would mean a second render on mount).
@@ -175,6 +196,7 @@ export function BookingWidget({ options }: { options: Option[] }) {
           email: guest.email,
           phone: guest.phone,
           hotel: guest.hotel,
+          option: selectedOption?.name ?? "",
         }),
       });
       const data = (await response.json()) as {
@@ -189,7 +211,11 @@ export function BookingWidget({ options }: { options: Option[] }) {
         return;
       }
 
-      track("online_booking", { tour: tourSlug, total: data.total ?? 0 });
+      track("online_booking", {
+        tour: tourSlug,
+        option: selectedOption?.name ?? "",
+        total: data.total ?? 0,
+      });
 
       if (data.paymentUrl) {
         window.location.assign(data.paymentUrl);
@@ -205,7 +231,9 @@ export function BookingWidget({ options }: { options: Option[] }) {
   }
 
   const message = tour
-    ? `Hi ${siteConfig.name}, I would like to book ${tour.name} on ${date || "(date)"}${
+    ? `Hi ${siteConfig.name}, I would like to book ${tour.name}${
+        selectedOption ? ` (${selectedOption.name})` : ""
+      } on ${date || "(date)"}${
         time ? ` at ${time}` : ""
       } for ${describeParty(adults, children)}. Total ${formatRupiah(total)}. My hotel: `
     : "";
@@ -289,6 +317,30 @@ export function BookingWidget({ options }: { options: Option[] }) {
               ))}
             </select>
           </div>
+
+          {pricingOptions.length > 0 && selectedOption ? (
+            <div className="sm:col-span-2 lg:col-span-12">
+              <label htmlFor="booking-option" className="text-xs font-medium text-river-700">
+                Option
+              </label>
+              <select
+                id="booking-option"
+                value={selectedOption.name}
+                onChange={(event) => setChosenOption(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-river-200 bg-white px-3 py-2.5 text-sm text-river-950 focus:border-river-500 focus:ring-2 focus:ring-river-200 focus:outline-none"
+              >
+                {pricingOptions.map((choice) => (
+                  <option key={choice.name} value={choice.name}>
+                    {choice.name}
+                    {choice.price > 0 ? ` — ${formatRupiah(choice.price)} / person` : ""}
+                  </option>
+                ))}
+              </select>
+              {selectedOption.description ? (
+                <p className="mt-1 text-xs text-river-600">{selectedOption.description}</p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
