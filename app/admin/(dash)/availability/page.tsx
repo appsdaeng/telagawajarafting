@@ -180,7 +180,7 @@ export default async function AvailabilityPage({
           ) : null}
         </Card>
 
-        <Card className="p-4 lg:col-span-2">
+        <Card id="special-prices" className="scroll-mt-24 p-4 lg:col-span-2">
           <h2 className="text-sm font-semibold">Special prices</h2>
           <p className="mt-1 text-xs text-river-500">
             Peak dates such as Eid or New Year. A tour-specific price beats an all-tours price for

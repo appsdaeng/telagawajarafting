@@ -196,6 +196,32 @@ export default async function PosPage({
                       this date.
                     </div>
 
+                    {Array.isArray(chosen.pricing_options) && chosen.pricing_options.length > 0 ? (
+                      <div className="rounded-lg border border-river-100 px-3 py-2 text-xs text-river-700">
+                        <p className="font-semibold text-river-800">Options</p>
+                        <ul className="mt-1 space-y-1">
+                          {chosen.pricing_options.map((option, index) => (
+                            <li
+                              key={`${index}-${option.name}`}
+                              className="flex flex-wrap items-baseline justify-between gap-2"
+                            >
+                              <span>
+                                {option.name || "Option"}
+                                {option.field ? ` · ${option.field}` : ""}
+                                {option.description ? ` — ${option.description}` : ""}
+                              </span>
+                              <span className="font-semibold">
+                                {option.price > 0 ? formatRupiah(option.price) : "—"}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-1 text-river-500">
+                          Add these to the sale by hand and mention them in Notes.
+                        </p>
+                      </div>
+                    ) : null}
+
                     <button type="submit" className={buttonPrimary}>
                       Record sale and mark paid
                     </button>

@@ -34,6 +34,7 @@ create table if not exists public.tours (
   good_to_know text[] not null default '{}',
   price_adult integer not null default 0 check (price_adult >= 0),
   price_child integer not null default 0 check (price_child >= 0),
+  pricing_options jsonb not null default '[]'::jsonb,
   duration text not null default '',
   meeting_point text not null default '',
   image_url text not null default '',
@@ -49,6 +50,11 @@ create table if not exists public.tours (
 );
 
 create unique index if not exists tours_slug_key on public.tours (slug);
+
+-- Added after the first release; the ALTER keeps re-running this file on an
+-- existing database safe.
+alter table public.tours
+  add column if not exists pricing_options jsonb not null default '[]'::jsonb;
 
 create table if not exists public.tour_departures (
   id uuid primary key default gen_random_uuid(),
