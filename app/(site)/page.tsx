@@ -18,6 +18,8 @@ import {
   safetyPoints,
   trustPoints,
 } from "@/lib/content";
+import type { TourOption } from "@/lib/db-types";
+import { databaseConfigured, sql } from "@/lib/db";
 import { getGalleryImages } from "@/lib/gallery";
 import { HERO_IMAGE_CANDIDATES, firstPublicFile } from "@/lib/media";
 import { businessJsonLd } from "@/lib/schema";
@@ -68,6 +70,17 @@ const includedIcon = (title: string) => {
 
 export default async function HomePage() {
   const gallery = await getGalleryImages();
+
+  // Bookable options per tour, so the widget can price and tag the reservation.
+  const optionRows = databaseConfigured
+    ? await sql<{ slug: string; pricing_options: TourOption[] }[]>`
+        select slug, pricing_options from public.tours where published = true
+      `
+    : [];
+  const optionsBySlug = new Map(
+    optionRows.map((row) => [row.slug, Array.isArray(row.pricing_options) ? row.pricing_options : []]),
+  );
+
   const fromPrice = Math.min(...tours.map((tour) => tour.priceAdult));
   const homeFaqs = faqs.slice(0, 5);
 
@@ -159,6 +172,7 @@ export default async function HomePage() {
                 name: tour.name,
                 priceAdult: tour.priceAdult,
                 priceChild: tour.priceChild,
+                pricingOptions: optionsBySlug.get(tour.slug) ?? [],
               }))}
             />
           </div>
