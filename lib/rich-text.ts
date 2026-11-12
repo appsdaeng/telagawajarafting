@@ -2,19 +2,29 @@
  * Rich text helpers for the admin tour form.
  *
  * The tour fields are stored as plain `text` / `text[]` columns, so the editor
- * only ever emits inline markup (`b`, `i`, `u`, links). Everything else is
- * stripped before the value reaches the database, which keeps the stored data
- * safe to render later without trusting the browser.
+ * only ever emits inline markup (`b`, `i`, `u`, `s`, links) plus simple lists.
+ * The itinerary additionally uses a document layout (`p`, `h2`, `h3`), which is
+ * opted into with `{ blocks: true }`. Everything else is stripped before the
+ * value reaches the database, which keeps the stored data safe to render later
+ * without trusting the browser.
  */
 
-const ALLOWED_TAGS = new Set(["b", "strong", "i", "em", "u", "br", "a", "ul", "ol", "li"]);
+const INLINE_TAGS = new Set(["b", "strong", "i", "em", "u", "s", "strike", "br", "a"]);
+const LIST_TAGS = new Set(["ul", "ol", "li"]);
+const DOCUMENT_TAGS = new Set(["p", "div", "h2", "h3"]);
 
 const TAG_PATTERN = /<\/?([a-zA-Z][a-zA-Z0-9]*)((?:"[^"]*"|'[^']*'|[^"'>])*)>/g;
 
 const SAFE_URL = /^(https?:\/\/|mailto:|\/(?!\/))/i;
 
-/** Keep only inline formatting tags; drop every attribute except a safe href. */
-export function sanitizeRichText(value: string): string {
+/**
+ * Keep only formatting tags; drop every attribute except a safe href.
+ *
+ * `blocks` allows the document tags the itinerary editor produces (paragraphs
+ * and headings). Without it the same tags are dropped but their text is kept,
+ * so a single-paragraph field can never store block markup.
+ */
+export function sanitizeRichText(value: string, { blocks = false } = {}): string {
   if (!value) return "";
 
   const withoutDangerous = value
@@ -30,9 +40,14 @@ export function sanitizeRichText(value: string): string {
     lastIndex = index + match[0].length;
 
     const closing = match[0].startsWith("</");
-    const name = match[1].toLowerCase();
+    let name = match[1].toLowerCase();
 
-    if (!ALLOWED_TAGS.has(name)) {
+    // The browser may split paragraphs with <div>; store them as <p> and
+    // normalise the deprecated <strike> to <s>.
+    if (name === "strike") name = "s";
+    if (blocks && name === "div") name = "p";
+
+    if (!INLINE_TAGS.has(name) && !LIST_TAGS.has(name) && !(blocks && DOCUMENT_TAGS.has(name))) {
       // Unknown tags are dropped but their text is kept.
       continue;
     }
@@ -64,4 +79,51 @@ export function sanitizeRichText(value: string): string {
 /** True when the value has no visible text once the markup is removed. */
 export function isRichTextEmpty(value: string): boolean {
   return value.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() === "";
+}
+
+const TOP_LEVEL_BLOCK = /<(p|h2|h3|ul|ol)\b[^>]*>[\s\S]*?<\/\1>/gi;
+
+function hasVisibleText(html: string): boolean {
+  return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() !== "";
+}
+
+/**
+ * Turn the itinerary document back into one step per top-level block.
+ *
+ * The itinerary column is a list of steps, so each paragraph becomes its own
+ * entry (without the wrapping <p>, which keeps a leading time readable on the
+ * public page). Headings and lists are kept whole so their markup survives.
+ * Matches the editor output from `sanitizeRichText(value, { blocks: true })`.
+ */
+export function splitRichTextBlocks(value: string): string[] {
+  if (!value) return [];
+
+  const blocks: string[] = [];
+  let lastIndex = 0;
+
+  for (const match of value.matchAll(TOP_LEVEL_BLOCK)) {
+    const index = match.index ?? 0;
+    const between = value.slice(lastIndex, index).trim();
+
+    if (hasVisibleText(between)) blocks.push(between);
+
+    lastIndex = index + match[0].length;
+
+    const tag = match[1].toLowerCase();
+    const whole = match[0].trim();
+
+    if (tag === "p") {
+      const inner = whole.replace(/^<p\b[^>]*>/i, "").replace(/<\/p>$/i, "").trim();
+
+      if (hasVisibleText(inner)) blocks.push(inner);
+    } else if (hasVisibleText(whole)) {
+      blocks.push(whole);
+    }
+  }
+
+  const tail = value.slice(lastIndex).trim();
+
+  if (hasVisibleText(tail)) blocks.push(tail);
+
+  return blocks;
 }

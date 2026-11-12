@@ -2,7 +2,8 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { databaseConfigured, sql } from "@/lib/db";
-import { sanitizeRichText } from "@/lib/rich-text";
+import type { TourOption } from "@/lib/db-types";
+import { sanitizeRichText, splitRichTextBlocks } from "@/lib/rich-text";
 import { saveTourAction } from "../actions";
 
 /**
@@ -16,10 +17,15 @@ import { saveTourAction } from "../actions";
  * write happens in the `finally` block.
  */
 
-const PARAGRAPH_FIELDS = new Set(["description", "itinerary"]);
+const BLOCK_FIELDS = new Set(["itinerary"]);
+const PARAGRAPH_FIELDS = new Set(["description"]);
 const LINE_FIELDS = new Set(["story", "includes", "highlights"]);
 
 function clean(key: string, value: string): string {
+  if (BLOCK_FIELDS.has(key)) {
+    return sanitizeRichText(value, { blocks: true });
+  }
+
   if (PARAGRAPH_FIELDS.has(key)) {
     return sanitizeRichText(value);
   }
@@ -27,7 +33,7 @@ function clean(key: string, value: string): string {
   if (LINE_FIELDS.has(key)) {
     return value
       .split("\n")
-      .map(sanitizeRichText)
+      .map((line) => sanitizeRichText(line))
       .filter(Boolean)
       .join("\n");
   }
@@ -63,17 +69,48 @@ function readGallery(form: FormData): string[] {
   }
 }
 
-function readLines(form: FormData, field: string): string[] {
-  return String(form.get(field) ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, 40);
+/** One itinerary step per top-level block (paragraph, heading or list). */
+function readItinerary(form: FormData): string[] {
+  return splitRichTextBlocks(String(form.get("itinerary") ?? "")).slice(0, 40);
+}
+
+function plainText(value: unknown, max = 300): string {
+  return String(value ?? "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+/** The extra tour/pricing options, posted as JSON by the option editor. */
+function readOptions(form: FormData): TourOption[] {
+  try {
+    const parsed: unknown = JSON.parse(String(form.get("pricing_options") ?? "[]"));
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter(
+        (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object",
+      )
+      .map((item) => ({
+        name: plainText(item.name, 80),
+        description: plainText(item.description, 500),
+        price: Math.max(0, Math.trunc(Number(item.price) || 0)),
+        field: plainText(item.field, 80),
+      }))
+      .filter((option) => option.name || option.description || option.price || option.field)
+      .slice(0, 20);
+  } catch {
+    return [];
+  }
 }
 
 async function saveGallery(form: FormData): Promise<void> {
   const gallery = readGallery(form);
-  const itinerary = readLines(form, "itinerary");
+  const itinerary = readItinerary(form);
   const id = String(form.get("id") ?? "").trim();
   const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
 
@@ -100,6 +137,34 @@ async function saveGallery(form: FormData): Promise<void> {
   }
 }
 
+async function saveOptions(form: FormData): Promise<void> {
+  const options = readOptions(form);
+  const id = String(form.get("id") ?? "").trim();
+  const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
+
+  if (!databaseConfigured || (!id && !slug)) {
+    return;
+  }
+
+  try {
+    const json = JSON.stringify(options);
+
+    if (id) {
+      await sql`
+        update public.tours set pricing_options = ${json}::jsonb, updated_at = now()
+        where id = ${id}
+      `;
+    } else {
+      await sql`
+        update public.tours set pricing_options = ${json}::jsonb, updated_at = now()
+        where slug = ${slug}
+      `;
+    }
+  } catch (error) {
+    console.error("[tours] could not save the pricing options", error);
+  }
+}
+
 export async function saveTourWithRichTextAction(form: FormData): Promise<void> {
   const cleaned = new FormData();
 
@@ -111,6 +176,7 @@ export async function saveTourWithRichTextAction(form: FormData): Promise<void> 
     await saveTourAction(cleaned);
   } finally {
     await saveGallery(cleaned);
+    await saveOptions(cleaned);
     // `saveTourAction` ends in redirect(), which throws, so refresh the cached
     // public tour pages here. Revalidation must never throw: if it did, it
     // would replace the redirect and the form would report a failed save.

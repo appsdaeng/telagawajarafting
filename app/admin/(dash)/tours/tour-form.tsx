@@ -1,11 +1,14 @@
 import type { TourRow } from "@/lib/db-types";
+import Link from "next/link";
 import {
   buttonPrimary,
+  buttonSecondary,
   inputClass,
   labelClass,
 } from "@/app/admin/_components/ui";
 import { RichTextField } from "@/app/admin/_components/rich-text";
 import { TourGalleryField } from "@/app/admin/_components/tour-gallery-field";
+import { TourOptionsField } from "@/app/admin/_components/tour-options-field";
 import { storageSetupHint } from "@/lib/storage";
 import { saveTourWithRichTextAction } from "./save-tour";
 
@@ -110,6 +113,24 @@ export function TourForm({ tour }: { tour?: TourRow }) {
             <span className={labelClass}>Duration</span>
             <input name="duration" defaultValue={tour?.duration} className={inputClass} />
           </label>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-river-100 bg-river-50/60 px-3 py-2">
+            <span className="text-xs text-river-600">
+              Peak-date or group price? Add it under Availability.
+            </span>
+            <Link
+              href={
+                tour
+                  ? `/admin/availability?tour=${tour.id}#special-prices`
+                  : "/admin/availability#special-prices"
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${buttonSecondary} px-2.5 py-1 text-xs`}
+            >
+              Option
+            </Link>
+          </div>
         </div>
 
         <RichTextField
@@ -131,11 +152,12 @@ export function TourForm({ tour }: { tour?: TourRow }) {
         <RichTextField
           name="itinerary"
           label="Itinerary"
-          hint="Rich text. Use bullets/numbered lists for sub-points; start lines with a time, e.g. 09:00 Hotel pickup from Ubud."
-          placeholder="09:00 Hotel pickup…"
+          hint="Write it like a document: press Enter for a new paragraph, use H2/H3 for headings and the list buttons for sub-points. Start a paragraph with a time, e.g. 09:00 Hotel pickup from Ubud."
+          placeholder="Write the itinerary…"
           defaultValue={tour?.itinerary}
+          blocks
           resizable
-          minHeight="10rem"
+          minHeight="12rem"
         />
         <Area
           name="good_to_know"
@@ -147,6 +169,10 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           <span className={labelClass}>Meeting point</span>
           <input name="meeting_point" defaultValue={tour?.meeting_point} className={inputClass} />
         </label>
+      </div>
+
+      <div className="rounded-2xl border border-river-100 bg-white p-4 shadow-sm">
+        <TourOptionsField defaultValue={tour?.pricing_options} />
       </div>
 
       <div className="grid gap-4 rounded-2xl border border-river-100 bg-white p-4 shadow-sm sm:grid-cols-2">
