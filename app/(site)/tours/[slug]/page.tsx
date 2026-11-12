@@ -74,7 +74,10 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
 
   // Admin edits live in Postgres; fall back to the bundled catalogue when a
   // field is empty so unedited tours still render their original copy.
-  const t = mergeTour(tour, await getTourRow(slug));
+  const row = await getTourRow(slug);
+  const t = mergeTour(tour, row);
+  // Set in Admin → Tours → Tour / pricing options; empty means no section.
+  const options = Array.isArray(row?.pricing_options) ? row.pricing_options : [];
 
   const crumbs = [
     { name: "Home", path: "/" },
@@ -99,13 +102,13 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
         <nav aria-label="Breadcrumb" className="text-sm text-river-600">
           <ol className="flex flex-wrap items-center gap-2">
             <li>
-              <Link href="/" className="hover:text-river-900 hover:underline">
+              <Link href="/" className="text-river-900 hover:underline">
                 Home
               </Link>
             </li>
             <li aria-hidden="true">/</li>
             <li>
-              <Link href="/tours" className="hover:text-river-900 hover:underline">
+              <Link href="/tours" className="text-river-900 hover:underline">
                 Tours
               </Link>
             </li>
@@ -171,7 +174,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                           </p>
                         ) : null}
                         <div
-                          className="mt-1 text-sm leading-relaxed text-river-900 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                          className="mt-1 text-sm leading-relaxed text-river-900 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5"
                           dangerouslySetInnerHTML={{ __html: content }}
                         />
                       </div>
@@ -234,6 +237,39 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                 <dd className="text-xl font-semibold">{formatRupiah(t.priceChild)}</dd>
               </div>
             </dl>
+
+            {options.length > 0 ? (
+              <div className="mt-5 border-t border-river-100 pt-4">
+                <h2 className="text-sm font-semibold tracking-widest text-river-500 uppercase">
+                  Options
+                </h2>
+                <ul className="mt-3 space-y-3">
+                  {options.map((option, index) => (
+                    <li key={`${index}-${option.name}`}>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="text-sm font-medium text-river-900">
+                          {option.name || "Option"}
+                        </span>
+                        {option.price > 0 ? (
+                          <span className="text-sm font-semibold">
+                            {formatRupiah(option.price)}
+                          </span>
+                        ) : null}
+                      </div>
+                      {option.field ? (
+                        <p className="text-xs font-medium text-river-500">{option.field}</p>
+                      ) : null}
+                      {option.description ? (
+                        <p className="mt-1 text-xs leading-relaxed text-river-700">
+                          {option.description}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <p className="mt-3 text-xs text-river-600">
               Per person, including equipment, guide, lunch and hotel pickup. Paid at base camp on
               the day — no card details online.

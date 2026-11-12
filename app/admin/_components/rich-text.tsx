@@ -11,6 +11,36 @@ const toolbarButton =
 const editorRowClass =
   "rich-text min-h-9 flex-1 rounded-md px-2 py-1.5 text-sm leading-relaxed text-river-950 outline-none";
 
+type ToolbarItem = {
+  label: string;
+  title: string;
+  name: string;
+  value?: string;
+  className?: string;
+};
+
+/** Inline formatting: one editable line per row. */
+const inlineToolbar: ToolbarItem[] = [
+  { label: "B", title: "Bold", name: "bold", className: "font-bold" },
+  { label: "I", title: "Italic", name: "italic", className: "italic" },
+  { label: "U", title: "Underline", name: "underline", className: "underline" },
+  { label: "•", title: "Bullet list", name: "insertUnorderedList" },
+  { label: "1.", title: "Numbered list", name: "insertOrderedList" },
+  { label: "🔗", title: "Insert link", name: "createLink" },
+];
+
+/** Document formatting: paragraphs, headings, lists and strikethrough. */
+const documentToolbar: ToolbarItem[] = [
+  { label: "B", title: "Bold", name: "bold", className: "font-bold" },
+  { label: "I", title: "Italic", name: "italic", className: "italic" },
+  { label: "H2", title: "Heading 2", name: "formatBlock", value: "h2", className: "font-bold" },
+  { label: "H3", title: "Heading 3", name: "formatBlock", value: "h3", className: "font-bold" },
+  { label: "•", title: "Bullet list", name: "insertUnorderedList" },
+  { label: "1.", title: "Numbered list", name: "insertOrderedList" },
+  { label: "🔗", title: "Insert link", name: "createLink" },
+  { label: "S", title: "Strikethrough", name: "strikeThrough", className: "line-through" },
+];
+
 type RichTextFieldProps = {
   name: string;
   label: string;
@@ -30,6 +60,11 @@ type RichTextFieldProps = {
   resizable?: boolean;
   /** Minimum height of a resizable/single editor, e.g. "8rem". */
   minHeight?: string;
+  /**
+   * Document mode: one rich document with paragraphs, headings (H2/H3),
+   * strikethrough and lists. Used by the itinerary field.
+   */
+  blocks?: boolean;
 };
 
 /**
@@ -47,17 +82,39 @@ export function RichTextField({
   addLabel = "Add line",
   resizable = false,
   minHeight,
+  blocks = false,
 }: RichTextFieldProps) {
   const initial = Array.isArray(defaultValue) ? defaultValue : [defaultValue ?? ""];
-  const [rows, setRows] = useState<Row[]>(() =>
-    initial.length > 0
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (blocks) {
+      // A document field loads every stored step as its own paragraph.
+      const html = initial
+        .filter((item) => item.trim())
+        .map((item) => `<p>${item}</p>`)
+        .join("");
+
+      return [{ id: 0, html }];
+    }
+
+    return initial.length > 0
       ? initial.map((html, index) => ({ id: index, html }))
-      : [{ id: 0, html: "" }],
-  );
+      : [{ id: 0, html: "" }];
+  });
   // Set by add/remove below; the effect moves the caret once the row exists.
   const pendingFocus = useRef<number | null>(null);
   const nextId = useRef(initial.length);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!blocks) return;
+
+    try {
+      // Enter should start a new <p> rather than a browser-specific <div>.
+      document.execCommand("defaultParagraphSeparator", false, "p");
+    } catch {
+      // Older browsers ignore the command; typing still works.
+    }
+  }, [blocks]);
 
   useEffect(() => {
     const target = pendingFocus.current;
@@ -105,7 +162,7 @@ export function RichTextField({
     if (previous) pendingFocus.current = previous.id;
   };
 
-  const command = (name: string) => {
+  const command = (name: string, value?: string) => {
     if (name === "createLink") {
       const url = window.prompt("Link address", "https://");
       if (!url) return;
@@ -114,7 +171,7 @@ export function RichTextField({
     }
 
     document.execCommand("styleWithCSS", false, "false");
-    document.execCommand(name, false);
+    document.execCommand(name, false, value);
   };
 
   const value = rows
@@ -128,69 +185,37 @@ export function RichTextField({
 
       <div className="mt-1 rounded-lg border border-river-200 bg-white shadow-sm focus-within:border-river-500 focus-within:ring-2 focus-within:ring-river-200">
         <div className="flex flex-wrap items-center gap-1 border-b border-river-100 bg-river-50/70 px-1.5 py-1">
-          {[
-            { label: "B", title: "Bold", name: "bold", className: "font-bold" },
-            { label: "I", title: "Italic", name: "italic", className: "italic" },
-            { label: "U", title: "Underline", name: "underline", className: "underline" },
-          ].map((item) => (
+          {(blocks ? documentToolbar : inlineToolbar).map((item) => (
             <button
-              key={item.name}
+              key={item.title}
               type="button"
               title={item.title}
               aria-label={item.title}
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => command(item.name)}
-              className={`${toolbarButton} ${item.className}`}
+              onClick={() => command(item.name, item.value)}
+              className={`${toolbarButton} ${item.className ?? ""}`}
             >
               {item.label}
             </button>
           ))}
-          <button
-            type="button"
-            title="Bullet list"
-            aria-label="Bullet list"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => command("insertUnorderedList")}
-            className={toolbarButton}
-          >
-            •
-          </button>
-          <button
-            type="button"
-            title="Numbered list"
-            aria-label="Numbered list"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => command("insertOrderedList")}
-            className={toolbarButton}
-          >
-            1.
-          </button>
-          <button
-            type="button"
-            title="Insert link"
-            aria-label="Insert link"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => command("createLink")}
-            className={toolbarButton}
-          >
-            🔗
-          </button>
-          <button
-            type="button"
-            title="Remove formatting"
-            aria-label="Remove formatting"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              document.execCommand("unlink", false);
-              document.execCommand("removeFormat", false);
-            }}
-            className={toolbarButton}
-          >
-            ⌫
-          </button>
+          {blocks ? null : (
+            <button
+              type="button"
+              title="Remove formatting"
+              aria-label="Remove formatting"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                document.execCommand("unlink", false);
+                document.execCommand("removeFormat", false);
+              }}
+              className={toolbarButton}
+            >
+              ⌫
+            </button>
+          )}
         </div>
 
-        <div ref={containerRef} className="space-y-1 p-1.5">
+        <div ref={containerRef} className={blocks ? "px-3 py-2" : "space-y-1 p-1.5"}>
           {rows.map((row, index) => (
             <div key={row.id} className="flex items-start gap-1">
               {multiple ? (
@@ -210,7 +235,7 @@ export function RichTextField({
                 suppressContentEditableWarning
                 data-row={row.id}
                 data-placeholder={placeholder ?? (multiple ? addLabel : undefined)}
-                className={`${editorRowClass}${resizable && !multiple ? " resize-y overflow-auto" : ""}`}
+                className={`${editorRowClass}${blocks ? " rich-text-blocks" : ""}${resizable && !multiple ? " resize-y overflow-auto" : ""}`}
                 style={resizable && !multiple ? { minHeight: minHeight ?? "8rem", maxHeight: "24rem" } : undefined}
                 ref={(element) => {
                   if (element && !element.dataset.filled) {
@@ -226,9 +251,11 @@ export function RichTextField({
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
+                    // Document mode starts a real new paragraph; single-line
+                    // rows insert a soft break instead of splitting the row.
+                    if (blocks) return;
+
                     event.preventDefault();
-                    // Insert a soft line break inside the current paragraph
-                    // instead of splitting it into a new row.
                     document.execCommand("insertHTML", false, "<br>");
                     return;
                   }
