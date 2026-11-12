@@ -137,6 +137,53 @@ async function saveGallery(form: FormData): Promise<void> {
   }
 }
 
+/**
+ * Pricing now comes from the tour options, so the form no longer posts
+ * `price_adult` / `price_child`. The rest of the app still reads those two
+ * columns: keep the saved values for an existing tour, and fall back to the
+ * cheapest option for a new one instead of overwriting them with zero.
+ */
+async function applyFallbackPrices(form: FormData): Promise<void> {
+  if (form.has("price_adult") || form.has("price_child")) {
+    return;
+  }
+
+  const id = String(form.get("id") ?? "").trim();
+  const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
+  let adult = 0;
+  let child = 0;
+
+  if (databaseConfigured) {
+    try {
+      const rows: { price_adult: number; price_child: number }[] = id
+        ? await sql`select price_adult, price_child from public.tours where id = ${id} limit 1`
+        : await sql`select price_adult, price_child from public.tours where slug = ${slug} limit 1`;
+
+      if (rows[0]) {
+        adult = Number(rows[0].price_adult) || 0;
+        child = Number(rows[0].price_child) || 0;
+      }
+    } catch (error) {
+      console.error("[tours] could not read the current prices", error);
+    }
+  }
+
+  if (adult === 0) {
+    const cheapest = readOptions(form).reduce(
+      (min, option) => (option.price > 0 && option.price < min ? option.price : min),
+      Number.POSITIVE_INFINITY,
+    );
+
+    if (Number.isFinite(cheapest)) {
+      adult = cheapest;
+      child = cheapest;
+    }
+  }
+
+  form.set("price_adult", String(adult));
+  form.set("price_child", String(child));
+}
+
 async function saveOptions(form: FormData): Promise<void> {
   const options = readOptions(form);
   const id = String(form.get("id") ?? "").trim();
@@ -173,6 +220,7 @@ export async function saveTourWithRichTextAction(form: FormData): Promise<void> 
   }
 
   try {
+    await applyFallbackPrices(cleaned);
     await saveTourAction(cleaned);
   } finally {
     await saveGallery(cleaned);

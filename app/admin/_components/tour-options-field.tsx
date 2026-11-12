@@ -55,9 +55,9 @@ export function TourOptionsField({ defaultValue }: { defaultValue?: TourOption[]
           <span className={labelClass}>Tour options</span>
           <p className="mt-1 text-xs text-river-500">
             The variants a guest can book, such as “Rafting only” or “Rafting with hotel
-            transfer”. Each option carries its own description and tier price, which become the
-            selectable options on the tour page. Leave empty when the adult and child prices are
-            the only choice.
+            transfer”. Each option carries its own description and tier price, and the cheapest
+            option is used as the “from” price shown across the site. Add at least one option —
+            the tour has no other price field.
           </p>
         </div>
         <button type="button" onClick={addOption} className={buttonSecondary}>

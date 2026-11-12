@@ -84,34 +84,14 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           addLabel="Add paragraph"
         />
 
-        <div className="grid gap-4">
-          <label className="block">
-            <span className={labelClass}>Adult price (IDR)</span>
-            <input
-              name="price_adult"
-              type="number"
-              min="0"
-              step="1000"
-              defaultValue={tour?.price_adult ?? 0}
-              className={inputClass}
-            />
-          </label>
-          <label className="block">
-            <span className={labelClass}>Child price (IDR)</span>
-            <input
-              name="price_child"
-              type="number"
-              min="0"
-              step="1000"
-              defaultValue={tour?.price_child ?? 0}
-              className={inputClass}
-            />
-          </label>
-          <label className="block">
-            <span className={labelClass}>Duration</span>
-            <input name="duration" defaultValue={tour?.duration} className={inputClass} />
-          </label>
+        <div className="sm:col-span-2">
+          <TourOptionsField defaultValue={tour?.pricing_options} />
         </div>
+
+        <label className="block">
+          <span className={labelClass}>Duration</span>
+          <input name="duration" defaultValue={tour?.duration} className={inputClass} />
+        </label>
 
         <RichTextField
           name="includes"
@@ -149,10 +129,6 @@ export function TourForm({ tour }: { tour?: TourRow }) {
           <span className={labelClass}>Meeting point</span>
           <input name="meeting_point" defaultValue={tour?.meeting_point} className={inputClass} />
         </label>
-      </div>
-
-      <div className="rounded-2xl border border-river-100 bg-white p-4 shadow-sm">
-        <TourOptionsField defaultValue={tour?.pricing_options} />
       </div>
 
       <div className="grid gap-4 rounded-2xl border border-river-100 bg-white p-4 shadow-sm sm:grid-cols-2">
