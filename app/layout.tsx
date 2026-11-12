@@ -12,19 +12,19 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.siteUrl),
   title: {
-    default: "Telaga Waja Rafting Bali | Book Online",
+    default: "Telaga Waja Rafting Bali – No Stairs, Easy Access Adventure",
     template: `%s | ${siteConfig.name}`,
   },
   description:
-    "White water rafting on the Telaga Waja river, Karangasem, Bali. 14 km of Class II–III rapids with guide, equipment, lunch and hotel pickup included.",
+    "Experience Telaga Waja Rafting Bali with exciting rapids, jungle scenery and easy river access. Enjoy a long rafting adventure without the steep stair climb.",
   applicationName: siteConfig.name,
   openGraph: {
     type: "website",
     siteName: siteConfig.name,
     locale: "en_US",
-    title: "Telaga Waja Rafting Bali | Book Online",
+    title: "Telaga Waja Rafting Bali – No Stairs, Easy Access Adventure",
     description:
-      "14 km of Class II–III rapids in Karangasem, Bali. Guide, lunch and hotel pickup included.",
+      "Telaga Waja rafting adventure with easy access at both the starting and finishing points. No long, exhausting stair climbs—just more time to enjoy Bali’s rapids, jungle scenery and waterfalls.",
   },
   twitter: { card: "summary_large_image" },
   robots: {
