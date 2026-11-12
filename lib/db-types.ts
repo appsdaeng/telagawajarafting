@@ -13,6 +13,13 @@ export type UserRow = {
   created_at: string;
 };
 
+export type TourOption = {
+  name: string;
+  description: string;
+  price: number;
+  field: string;
+};
+
 export type TourRow = {
   id: string;
   slug: string;
@@ -31,6 +38,7 @@ export type TourRow = {
   image_alt: string;
   gallery_urls: string[];
   itinerary: string[];
+  pricing_options: TourOption[];
   seo_title: string;
   seo_description: string;
   popular: boolean;

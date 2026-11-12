@@ -17,12 +17,14 @@ export const buttonDanger =
 export function Card({
   children,
   className = "",
+  id,
 }: {
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
-    <div className={`rounded-2xl border border-river-100 bg-white shadow-sm ${className}`}>
+    <div id={id} className={`rounded-2xl border border-river-100 bg-white shadow-sm ${className}`}>
       {children}
     </div>
   );
