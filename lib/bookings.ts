@@ -146,6 +146,8 @@ export type CreateBookingInput = {
   guestPhone?: string;
   hotel?: string;
   notes?: string;
+  /** Per-person price of a selected tour option; overrides the date rate. */
+  unitPrice?: number;
   source: BookingSource;
   createdById?: string | null;
   paymentStatus?: PaymentStatus;
@@ -178,7 +180,10 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingR
   }
 
   const price = await priceFor(tour, input.date);
-  const total = quote(price, input.adults, input.children);
+  const total =
+    input.unitPrice && input.unitPrice > 0
+      ? input.unitPrice * (input.adults + input.children)
+      : quote(price, input.adults, input.children);
   const paidAt = input.paymentStatus === "PAID" ? new Date() : null;
 
   return sql.begin(async (tx) => {
