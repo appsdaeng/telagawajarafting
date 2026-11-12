@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
-import { BookingWidget } from "@/app/components/booking-widget";
+import { BookingSection } from "@/app/components/booking-section";
 import { FaqList } from "@/app/components/faq-list";
 import { GoogleMark } from "@/app/components/google-mark";
 import { GoogleReviews } from "@/app/components/google-reviews";
@@ -18,8 +19,6 @@ import {
   safetyPoints,
   trustPoints,
 } from "@/lib/content";
-import type { TourOption } from "@/lib/db-types";
-import { databaseConfigured, sql } from "@/lib/db";
 import { getGalleryImages } from "@/lib/gallery";
 import { HERO_IMAGE_CANDIDATES, firstPublicFile } from "@/lib/media";
 import { businessJsonLd } from "@/lib/schema";
@@ -70,17 +69,6 @@ const includedIcon = (title: string) => {
 
 export default async function HomePage() {
   const gallery = await getGalleryImages();
-
-  // Bookable options per tour, so the widget can price and tag the reservation.
-  const optionRows = databaseConfigured
-    ? await sql<{ slug: string; pricing_options: TourOption[] }[]>`
-        select slug, pricing_options from public.tours where published = true
-      `
-    : [];
-  const optionsBySlug = new Map(
-    optionRows.map((row) => [row.slug, Array.isArray(row.pricing_options) ? row.pricing_options : []]),
-  );
-
   const fromPrice = Math.min(...tours.map((tour) => tour.priceAdult));
   const homeFaqs = faqs.slice(0, 5);
 
@@ -166,15 +154,13 @@ export default async function HomePage() {
       <section aria-label="Check availability" className="relative z-20 -mt-10 sm:-mt-16">
         <div className="container-page">
           <div className="mx-auto max-w-4xl">
-            <BookingWidget
-              options={tours.map((tour) => ({
-                slug: tour.slug,
-                name: tour.name,
-                priceAdult: tour.priceAdult,
-                priceChild: tour.priceChild,
-                pricingOptions: optionsBySlug.get(tour.slug) ?? [],
-              }))}
-            />
+            <Suspense
+              fallback={
+                <div className="h-40 rounded-3xl border border-river-100 bg-white shadow-xl shadow-river-950/10" />
+              }
+            >
+              <BookingSection />
+            </Suspense>
           </div>
         </div>
       </section>
