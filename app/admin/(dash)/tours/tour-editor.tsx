@@ -6,6 +6,7 @@ import { RichTextField } from "@/app/admin/_components/rich-text";
 import { ItineraryField } from "@/app/admin/_components/itinerary-field";
 import { TourGalleryField } from "@/app/admin/_components/tour-gallery-field";
 import { inputClass, labelClass } from "@/app/admin/_components/ui";
+import { asTourOptions } from "@/lib/tour-options";
 import { saveTourWithRichTextAction } from "./save-tour";
 
 type TabKey = "general" | "content" | "pricing";
@@ -56,8 +57,13 @@ export function TourEditor({
   const [imageAlt, setImageAlt] = useState(tour?.image_alt ?? "");
   const [focusKeyword, setFocusKeyword] = useState("");
   const [dirty, setDirty] = useState(false);
+  // asTourOptions: the jsonb column can hold a non-array, and mapping that used
+  // to throw "`.map` is not a function", which made a saved tour unopenable.
   const [options, setOptions] = useState<TourOption[]>(() =>
-    (tour?.pricing_options ?? []).map((option) => ({ ...option, active: option.active !== false })),
+    asTourOptions(tour?.pricing_options).map((option) => ({
+      ...option,
+      active: option.active !== false,
+    })),
   );
 
   // The option window posts the finished option back here, then closes itself.
