@@ -13,11 +13,38 @@ export type UserRow = {
   created_at: string;
 };
 
+/** One price band inside an option, e.g. Adult / Child with its own guest range. */
+export type TourTier = {
+  name: string;
+  price: number;
+  min: number;
+  max: number;
+  priceType: string;
+};
+
+/** An extra question the guest answers when booking this option. */
+export type TourOptionField = {
+  label: string;
+  type: string;
+  required: boolean;
+};
+
+/**
+ * A bookable option on a tour.
+ *
+ * `price` and `field` are the flattened values the public tour page still
+ * reads: the cheapest tier price and the label of the first tier. The full
+ * tier and guest-field lists live alongside them so the admin editor can
+ * round-trip what the operator typed without changing the public page.
+ */
 export type TourOption = {
   name: string;
   description: string;
   price: number;
   field: string;
+  tiers?: TourTier[];
+  fields?: TourOptionField[];
+  active?: boolean;
 };
 
 export type TourRow = {

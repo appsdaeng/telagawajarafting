@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { databaseConfigured, sql } from "@/lib/db";
-import type { TourOption } from "@/lib/db-types";
+import type { TourOption, TourOptionField, TourTier } from "@/lib/db-types";
 import { sanitizeRichText, splitRichTextBlocks } from "@/lib/rich-text";
 import { saveTourAction } from "../actions";
 
@@ -82,6 +82,42 @@ function plainText(value: unknown, max = 300): string {
     .slice(0, max);
 }
 
+/** The price bands the option window posts, oldest storage keeps `price`/`field`. */
+function readTiers(value: unknown): TourTier[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .map((item) => ({
+      name: plainText(item.name, 60),
+      price: Math.max(0, Math.trunc(Number(item.price) || 0)),
+      min: Math.max(0, Math.trunc(Number(item.min) || 0)),
+      max: Math.max(0, Math.trunc(Number(item.max) || 0)),
+      priceType: plainText(item.priceType, 40) || "Per person",
+    }))
+    .filter((tier) => tier.name || tier.price)
+    .slice(0, 12);
+}
+
+/** Extra guest questions for the option. */
+function readOptionFields(value: unknown): TourOptionField[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .map((item) => ({
+      label: plainText(item.label, 80),
+      type: plainText(item.type, 20) || "Text",
+      required: item.required === true || item.required === "true",
+    }))
+    .filter((field) => field.label)
+    .slice(0, 12);
+}
+
 /** The extra tour/pricing options, posted as JSON by the option editor. */
 function readOptions(form: FormData): TourOption[] {
   try {
@@ -95,13 +131,35 @@ function readOptions(form: FormData): TourOption[] {
       .filter(
         (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object",
       )
-      .map((item) => ({
-        name: plainText(item.name, 80),
-        description: plainText(item.description, 500),
-        price: Math.max(0, Math.trunc(Number(item.price) || 0)),
-        field: plainText(item.field, 80),
-      }))
-      .filter((option) => option.name || option.description || option.price || option.field)
+      .map((item) => {
+        const tiers = readTiers(item.tiers);
+        const fields = readOptionFields(item.fields);
+        const cheapest = tiers.reduce(
+          (min, tier) => (tier.price > 0 && tier.price < min ? tier.price : min),
+          Number.POSITIVE_INFINITY,
+        );
+
+        return {
+          name: plainText(item.name, 80),
+          description: plainText(item.description, 500),
+          price:
+            Math.max(0, Math.trunc(Number(item.price) || 0)) ||
+            (Number.isFinite(cheapest) ? cheapest : 0),
+          field: plainText(item.field, 80) || tiers[0]?.priceType || "",
+          tiers,
+          fields,
+          active: item.active !== false,
+        };
+      })
+      .filter(
+        (option) =>
+          option.name ||
+          option.description ||
+          option.price ||
+          option.field ||
+          option.tiers?.length ||
+          option.fields?.length,
+      )
       .slice(0, 20);
   } catch {
     return [];

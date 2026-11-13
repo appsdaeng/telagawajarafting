@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { TourRow } from "@/lib/db-types";
+import type { TourOption, TourRow } from "@/lib/db-types";
 import { RichTextField } from "@/app/admin/_components/rich-text";
 import { TourGalleryField } from "@/app/admin/_components/tour-gallery-field";
-import { TourOptionsField } from "@/app/admin/_components/tour-options-field";
 import { inputClass, labelClass } from "@/app/admin/_components/ui";
 import { saveTourWithRichTextAction } from "./save-tour";
 
@@ -19,6 +18,8 @@ const TABS: { key: TabKey; label: string }[] = [
 const cardClass = "rounded-2xl border border-river-100 bg-white p-5 shadow-sm";
 const sectionTitle = "text-sm font-semibold tracking-tight text-river-950";
 const hintClass = "mt-1 block text-xs text-river-500";
+const plansTh =
+  "border-b border-river-100 bg-river-50/70 px-3 py-2 text-left text-xs font-medium text-river-500";
 
 function slugify(value: string): string {
   return value
@@ -54,6 +55,36 @@ export function TourEditor({
   const [imageAlt, setImageAlt] = useState(tour?.image_alt ?? "");
   const [focusKeyword, setFocusKeyword] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [options, setOptions] = useState<TourOption[]>(() =>
+    (tour?.pricing_options ?? []).map((option) => ({ ...option, active: option.active !== false })),
+  );
+
+  // The option window posts the finished option back here, then closes itself.
+  useEffect(() => {
+    const receive = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      const data = event.data as { type?: string; option?: TourOption } | null;
+
+      if (data?.type !== "tour-price-option-saved" || !data.option) return;
+
+      setOptions((current) => [...current, data.option as TourOption]);
+      setDirty(true);
+    };
+
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, []);
+
+  const openOptionWindow = () => {
+    if (!tour) return;
+
+    window.open(
+      `/admin/tours/${tour.id}/options/new`,
+      `tour-option-${tour.id}`,
+      "width=1000,height=920,menubar=no,toolbar=no,location=no,status=no",
+    );
+  };
 
   const effectiveSlug = slugTouched ? slug : slugify(name);
 
@@ -466,7 +497,97 @@ export function TourEditor({
       {/* Price and availability */}
       <div className={tab === "pricing" ? "space-y-5" : "hidden"}>
         <div className={cardClass}>
-          <TourOptionsField defaultValue={tour?.pricing_options} />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className={sectionTitle}>Tour options</h2>
+              <p className={hintClass}>
+                The variants a guest can book, such as “Rafting only” or “Rafting with hotel
+                transfer”. The cheapest tier of every option feeds the “from” price across the site.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openOptionWindow}
+              disabled={!tour}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-river-200 bg-white px-3.5 py-2 text-sm font-semibold text-river-800 transition-colors hover:bg-river-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              + Add new option
+            </button>
+          </div>
+
+          {!tour ? (
+            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Save this tour once, then add its options.
+            </p>
+          ) : null}
+
+          {options.length > 0 ? (
+            <div className="mt-4 overflow-hidden rounded-xl border border-river-200">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr>
+                    <th className={plansTh}>Option</th>
+                    <th className={plansTh}>Tiers</th>
+                    <th className={plansTh}>Price from</th>
+                    <th className={plansTh}>Status</th>
+                    <th className={`${plansTh} w-12`} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {options.map((option, index) => (
+                    <tr key={`${option.name}-${index}`} className="border-t border-river-100">
+                      <td className="px-3 py-2.5">
+                        <p className="font-medium text-river-900">{option.name || "Option"}</p>
+                        {option.description ? (
+                          <p className="mt-0.5 text-xs text-river-500">{option.description}</p>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-river-600">
+                        {option.tiers?.length
+                          ? option.tiers.map((tier) => tier.name || "Tier").join(", ")
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-river-800">
+                        {option.price > 0 ? `IDR ${option.price.toLocaleString("id-ID")}` : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">
+                        {option.active === false ? (
+                          <span className="text-river-500">Inactive</span>
+                        ) : (
+                          <span className="font-medium text-emerald-700">Active</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <button
+                          type="button"
+                          aria-label={`Remove ${option.name || "option"}`}
+                          onClick={() => {
+                            setOptions((current) =>
+                              current.filter((_, position) => position !== index),
+                            );
+                            setDirty(true);
+                          }}
+                          className="rounded-md px-2 py-1 text-xs text-river-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mt-4 grid place-items-center rounded-xl border border-dashed border-river-200 bg-river-50/60 px-4 py-8 text-xs text-river-500">
+              No options yet
+            </div>
+          )}
+
+          <p className="mt-3 text-xs text-river-500">
+            Options are stored with the tour when you save it.
+          </p>
+
+          <input type="hidden" name="pricing_options" value={JSON.stringify(options)} readOnly />
         </div>
 
         <div className={cardClass}>
@@ -484,9 +605,7 @@ export function TourEditor({
               <li>Tour slug: {tour.slug}</li>
               <li>
                 Current from price:{" "}
-                {tour.price_adult > 0
-                  ? `IDR ${tour.price_adult.toLocaleString("id-ID")}`
-                  : "not set"}
+                {tour.price_adult > 0 ? `IDR ${tour.price_adult.toLocaleString("id-ID")}` : "not set"}
               </li>
             </ul>
           ) : null}
