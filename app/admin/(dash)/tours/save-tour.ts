@@ -4,7 +4,13 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { databaseConfigured, sql } from "@/lib/db";
 import type { TourOption, TourOptionField, TourTier } from "@/lib/db-types";
-import { sanitizeRichText, splitRichTextBlocks } from "@/lib/rich-text";
+import {
+  isRichTextEmpty,
+  itineraryStepToHtml,
+  sanitizeRichText,
+  splitRichTextBlocks,
+  type ItineraryStepInput,
+} from "@/lib/rich-text";
 import { saveTourAction } from "../actions";
 
 /**
@@ -105,8 +111,34 @@ function readGallery(form: FormData): string[] {
   }
 }
 
-/** One itinerary step per top-level block (paragraph, heading or list). */
+/**
+ * The itinerary steps.
+ *
+ * The editor posts `itinerary_steps` as JSON so a step keeps its own blocks: a
+ * description with bullet lists or several paragraphs is one step, not several.
+ * The older single-document `itinerary` field is still accepted, split on its
+ * top-level blocks, so a form cached in a browser from before this change
+ * still saves.
+ */
 function readItinerary(form: FormData): string[] {
+  const raw = String(form.get("itinerary_steps") ?? "").trim();
+
+  if (raw) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((step): step is ItineraryStepInput => Boolean(step) && typeof step === "object")
+          .map((step) => itineraryStepToHtml(step))
+          .filter((html) => !isRichTextEmpty(html))
+          .slice(0, 40);
+      }
+    } catch {
+      // Fall through to the document format below.
+    }
+  }
+
   return splitRichTextBlocks(String(form.get("itinerary") ?? "")).slice(0, 40);
 }
 

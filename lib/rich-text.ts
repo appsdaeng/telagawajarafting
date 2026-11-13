@@ -127,3 +127,49 @@ export function splitRichTextBlocks(value: string): string[] {
 
   return blocks;
 }
+
+function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export type ItineraryStepInput = {
+  time?: unknown;
+  title?: unknown;
+  description?: unknown;
+};
+
+const DESCRIPTION_BLOCK = /^<(?:ul|ol|p|h2|h3|div|blockquote)\b/i;
+
+/**
+ * One stored itinerary step: the time, the title and the description, in the
+ * single HTML string the `itinerary` column holds.
+ *
+ * The description keeps its own blocks (bullet and numbered lists, paragraphs),
+ * which is why steps are posted as JSON and assembled here instead of being
+ * split back out of one document: splitting on top-level blocks would turn a
+ * bullet list into separate steps.
+ */
+export function itineraryStepToHtml(step: ItineraryStepInput): string {
+  const time = typeof step.time === "string" ? step.time.trim() : "";
+  const title = typeof step.title === "string" ? step.title.trim() : "";
+  const description = sanitizeRichText(
+    typeof step.description === "string" ? step.description.trim() : "",
+    { blocks: true },
+  );
+
+  const head = [escapeHtmlText(time), title ? `<strong>${escapeHtmlText(title)}</strong>` : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  if (!head) {
+    return description;
+  }
+
+  // A list or paragraph already starts on its own line; a plain sentence needs
+  // the line break that keeps it under the title.
+  return description ? `${head}${DESCRIPTION_BLOCK.test(description) ? "" : "<br>"}${description}` : head;
+}
