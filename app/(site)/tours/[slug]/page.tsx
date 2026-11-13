@@ -169,15 +169,19 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                         >
                           {time ? "" : "•"}
                         </span>
-                        {time ? (
-                          <p className="text-xs font-semibold uppercase tracking-wide text-river-500">
-                            {time}
-                          </p>
-                        ) : null}
-                        <div
-                          className="mt-1 text-sm leading-relaxed text-river-900 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5"
-                          dangerouslySetInnerHTML={{ __html: content }}
-                        />
+                        {/* The time sits on the same line as the step title, so a
+                            step reads as one row rather than a label above it. */}
+                        <div className="flex items-baseline gap-2">
+                          {time ? (
+                            <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-river-500">
+                              {time}
+                            </span>
+                          ) : null}
+                          <div
+                            className="text-sm leading-relaxed text-river-900 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5"
+                            dangerouslySetInnerHTML={{ __html: content }}
+                          />
+                        </div>
                       </div>
                     );
                   })}
