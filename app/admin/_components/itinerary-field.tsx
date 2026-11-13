@@ -9,8 +9,13 @@ type Step = {
   description: string;
 };
 
-const inputClass =
-  "w-full rounded-lg border border-river-200 bg-white px-3 py-2 text-sm text-river-950 shadow-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200";
+// Each field has its own class: putting two width utilities (w-full and w-20)
+// on one element is not reliable, because CSS order decides the winner, not the
+// order they are written in the class attribute.
+const timeInputClass =
+  "w-20 shrink-0 rounded-lg border border-river-200 bg-white px-2 py-2 text-center text-sm tabular-nums text-river-950 shadow-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200";
+const titleInputClass =
+  "min-w-0 flex-1 rounded-lg border border-river-200 bg-white px-3 py-2 text-sm text-river-950 shadow-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200";
 const toolbarButton =
   "grid size-7 place-items-center rounded-md border border-river-200 bg-white text-xs font-semibold text-river-800 transition-colors hover:bg-river-100";
 
@@ -34,8 +39,8 @@ function strip(html: string): string {
  * Recover the three fields from a step stored by an older save, where the
  * whole step was one HTML string starting with the time.
  */
-function parseStep(html: string): { time: string; title: string; description: string } {
-  let rest = (html ?? "").trim();
+function parseStep(value: unknown): { time: string; title: string; description: string } {
+  let rest = (typeof value === "string" ? value : String(value ?? "")).trim();
   let time = "";
 
   const found = /^(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*:?\s*/i.exec(rest);
@@ -161,7 +166,9 @@ function DescriptionEditor({
  * with the time first so the tour page shows it as the time label.
  */
 export function ItineraryField({ defaultValue }: { defaultValue?: string[] | null }) {
-  const initial = (defaultValue ?? []).map((html, index) => ({
+  // Whatever the column holds (an older save, a null entry, a stray non-array
+  // value), the editor must still open: coerce instead of trusting the type.
+  const initial = (Array.isArray(defaultValue) ? defaultValue : []).map((html, index) => ({
     id: index,
     ...parseStep(html),
   }));
@@ -272,7 +279,7 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
                 }}
                 placeholder="08:00"
                 aria-label={`Time for step ${index + 1}`}
-                className={`${inputClass} w-20 shrink-0 px-2 text-center tabular-nums`}
+                className={timeInputClass}
               />
 
               <input
@@ -283,7 +290,7 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
                 }}
                 placeholder="Hotel pickup"
                 aria-label={`Title for step ${index + 1}`}
-                className={`${inputClass} min-w-0 flex-1`}
+                className={titleInputClass}
               />
 
               <button
