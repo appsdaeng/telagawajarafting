@@ -13,10 +13,57 @@ const dashedButton =
   "inline-flex items-center gap-1.5 rounded-lg border border-river-200 bg-white px-3 py-2 text-xs font-semibold text-river-800 transition-colors hover:bg-river-50";
 
 const PRICE_TYPES = ["Per person", "Per booking", "Per group"];
-const FIELD_TYPES = ["Text", "Number", "Dropdown", "Date"];
+const FIELD_TYPES = ["Text", "Dropdown Selector"];
 
 const emptyTier = (): TourTier => ({ name: "", price: 0, min: 1, max: 10, priceType: "Per person" });
-const emptyField = (): TourOptionField => ({ label: "", type: "Text", required: true });
+const emptyField = (): TourOptionField => ({
+  name: "",
+  label: "",
+  type: "Text",
+  options: [],
+  required: true,
+});
+
+/**
+ * The next tier starts where the previous one ends: after Min=1 Max=2 it is
+ * filled in as Min=3, keeping the same span, so the ranges cannot overlap or
+ * leave a gap as the list grows.
+ */
+function nextTier(current: TourTier[]): TourTier {
+  const previous = current[current.length - 1];
+
+  if (!previous) {
+    return emptyTier();
+  }
+
+  const max = Math.max(0, Math.trunc(Number(previous.max) || 0));
+  const min = Math.max(1, Math.trunc(Number(previous.min) || 0));
+  const start = max + 1;
+
+  return {
+    name: "",
+    price: 0,
+    min: start,
+    max: start + Math.max(0, max - min),
+    priceType: previous.priceType || "Per person",
+  };
+}
+
+/** Older options stored "Dropdown", "Number" or "Date"; keep a supported type. */
+function fieldType(type: string): string {
+  return /dropdown|select/i.test(type) ? "Dropdown Selector" : "Text";
+}
+
+/** Fields saved before names and choices existed still open in the editor. */
+function readFields(list: TourOptionField[] | undefined): TourOptionField[] {
+  return (list ?? []).filter(Boolean).map((item) => ({
+    name: item.name ?? "",
+    label: item.label ?? "",
+    type: fieldType(item.type ?? ""),
+    options: Array.isArray(item.options) ? item.options : [],
+    required: item.required !== false,
+  }));
+}
 
 /**
  * The option window.
@@ -58,7 +105,7 @@ export function TourOptionForm({
   const [name, setName] = useState(option?.name ?? "");
   const [description, setDescription] = useState(option?.description ?? "");
   const [tiers, setTiers] = useState<TourTier[]>(initialTiers);
-  const [fields, setFields] = useState<TourOptionField[]>(option?.fields ?? []);
+  const [fields, setFields] = useState<TourOptionField[]>(readFields(option?.fields));
   const [status, setStatus] = useState(option?.active === false ? "Inactive" : "Active");
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +150,17 @@ export function TourOptionForm({
       price: Number.isFinite(cheapest) ? cheapest : 0,
       field: keptTiers[0]?.priceType ?? "",
       tiers: keptTiers,
-      fields: fields.filter((item) => item.label.trim()),
+      fields: fields
+        .filter((item) => item.label.trim() || item.name.trim())
+        .map((item) => ({
+          ...item,
+          name: item.name.trim(),
+          label: item.label.trim(),
+          options:
+            item.type === "Dropdown Selector"
+              ? item.options.map((choice) => choice.trim()).filter(Boolean)
+              : [],
+        })),
       active: status === "Active",
     };
 
@@ -161,7 +218,7 @@ export function TourOptionForm({
         <div className="mt-7">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-river-950">Tier price</h2>
-            <button type="button" onClick={() => setTiers((c) => [...c, emptyTier()])} className={dashedButton}>
+            <button type="button" onClick={() => setTiers((current) => [...current, nextTier(current)])} className={dashedButton}>
               + Add tier
             </button>
           </div>
@@ -266,67 +323,103 @@ export function TourOptionForm({
               + Add field
             </button>
           </div>
+          <p className="mt-1 text-xs text-river-500">
+            A name to identify the field, the label the guest reads (it may run over several lines)
+            and the type: a plain Text box or a Dropdown Selector with one choice per line.
+          </p>
 
           {fields.length > 0 ? (
-            <div className="mt-2 overflow-hidden rounded-lg border border-river-200">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className={thClass}>Label</th>
-                    <th className={`${thClass} w-40`}>Type</th>
-                    <th className={`${thClass} w-32`}>Required</th>
-                    <th className={`${thClass} w-10`} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {fields.map((item, index) => (
-                    <tr key={index} className="border-b border-river-100 last:border-0">
-                      <td className="px-2 py-2">
-                        <input
-                          value={item.label}
-                          onChange={(event) => patchField(index, { label: event.target.value })}
-                          placeholder="Hotel name for pickup"
-                          className={field}
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <select
-                          value={item.type}
-                          onChange={(event) => patchField(index, { type: event.target.value })}
-                          className={field}
-                        >
-                          {FIELD_TYPES.map((type) => (
-                            <option key={type} value={type}>
-                              {type}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-2 py-2">
-                        <select
-                          value={item.required ? "Yes" : "No"}
-                          onChange={(event) => patchField(index, { required: event.target.value === "Yes" })}
-                          className={field}
-                        >
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <button
-                          type="button"
-                          aria-label={`Remove field ${index + 1}`}
-                          onClick={() => setFields((current) => current.filter((_, i) => i !== index))}
-                          className={iconButton}
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="mt-2 space-y-2">
+              {fields.map((item, index) => (
+                <li key={index} className="rounded-lg border border-river-200 p-3">
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem_8rem]">
+                    <label className="block">
+                      <span className={labelClass}>Name</span>
+                      <input
+                        value={item.name}
+                        onChange={(event) => patchField(index, { name: event.target.value })}
+                        placeholder="pickupHotel"
+                        className={field}
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className={labelClass}>Type</span>
+                      <select
+                        value={item.type}
+                        onChange={(event) => patchField(index, { type: event.target.value })}
+                        className={field}
+                      >
+                        {FIELD_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className={labelClass}>Required</span>
+                      <select
+                        value={item.required ? "Yes" : "No"}
+                        onChange={(event) =>
+                          patchField(index, { required: event.target.value === "Yes" })
+                        }
+                        className={field}
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="mt-2 block">
+                    <span className={labelClass}>Label</span>
+                    <textarea
+                      value={item.label}
+                      onChange={(event) => patchField(index, { label: event.target.value })}
+                      rows={2}
+                      placeholder="Hotel name for pickup. Use more lines when the question is long."
+                      className={field}
+                    />
+                  </label>
+
+                  {item.type === "Dropdown Selector" ? (
+                    <label className="mt-2 block">
+                      <span className={labelClass}>Choices</span>
+                      <textarea
+                        value={item.options.join("\n")}
+                        onChange={(event) =>
+                          patchField(index, { options: event.target.value.split("\n") })
+                        }
+                        rows={3}
+                        placeholder={"Rafting only\nRafting + lunch\nRafting + lunch + transfer"}
+                        className={field}
+                      />
+                      <span className="mt-1 block text-xs text-river-500">
+                        One choice per line — these become the dropdown entries.
+                      </span>
+                    </label>
+                  ) : null}
+
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <span className="text-xs text-river-400">
+                      {item.type === "Dropdown Selector"
+                        ? `${item.options.filter((choice) => choice.trim()).length} choice(s)`
+                        : "Guest types the answer"}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove field ${index + 1}`}
+                      onClick={() => setFields((current) => current.filter((_, i) => i !== index))}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-river-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                    >
+                      ✕ Remove field
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           ) : (
             <p className="mt-2 rounded-lg border border-dashed border-river-200 bg-river-50/50 px-3 py-3 text-xs text-river-500">
               No guest fields. Add one when the option needs extra information, such as a pickup
