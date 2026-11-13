@@ -17,15 +17,18 @@ const timeInputClass =
 const titleInputClass =
   "min-w-0 flex-1 rounded-lg border border-river-200 bg-white px-3 py-2 text-sm text-river-950 shadow-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200";
 const toolbarButton =
-  "grid size-7 place-items-center rounded-md border border-river-200 bg-white text-xs font-semibold text-river-800 transition-colors hover:bg-river-100";
+  "grid h-7 min-w-7 place-items-center rounded-md border border-river-200 bg-white px-1.5 text-xs font-semibold text-river-800 transition-colors hover:bg-river-100";
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+const TOOLS = [
+  { label: "B", title: "Bold", command: "bold", className: "font-bold" },
+  { label: "I", title: "Italic", command: "italic", className: "italic" },
+  { label: "U", title: "Underline", command: "underline", className: "underline" },
+  { label: "S", title: "Strikethrough", command: "strikeThrough", className: "line-through" },
+  { label: "• List", title: "Bullet list", command: "insertUnorderedList", className: "" },
+  { label: "1. List", title: "Numbered list", command: "insertOrderedList", className: "" },
+  { label: "🔗", title: "Insert link", command: "createLink", className: "" },
+  { label: "✕ₐ", title: "Clear formatting", command: "removeFormat", className: "" },
+];
 
 function strip(html: string): string {
   return html
@@ -68,11 +71,16 @@ function parseStep(value: unknown): { time: string; title: string; description: 
     rest = "";
   }
 
-  // The join between title and description is a <br>, not a paragraph break.
+  // The join between title and description is a <br> (or a block element when
+  // the description starts with a list).
   return { time, title, description: rest.replace(/^(?:<br\s*\/?>\s*)+/i, "").trim() };
 }
 
-/** One line of formatting, so each description can be bold/italic/linked. */
+/**
+ * A multi-line description with inline formatting and real bullet/numbered
+ * lists. Enter adds a line break, except inside a list, where the browser
+ * starts the next bullet.
+ */
 function DescriptionEditor({
   value,
   onChange,
@@ -84,38 +92,36 @@ function DescriptionEditor({
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const command = (name: string, argument?: string) => {
+  const sync = () => onChange(ref.current?.innerHTML ?? "");
+
+  const command = (name: string) => {
     if (name === "createLink") {
       const url = window.prompt("Link address", "https://");
       if (!url) return;
       document.execCommand("createLink", false, url);
-    } else {
-      document.execCommand("styleWithCSS", false, "false");
-      document.execCommand(name, false, argument);
+      sync();
+      return;
     }
 
-    onChange(ref.current?.innerHTML ?? "");
+    document.execCommand("styleWithCSS", false, "false");
+    document.execCommand(name, false);
+    sync();
   };
 
   return (
     <div className="mt-2 rounded-lg border border-river-200 bg-white shadow-sm focus-within:border-river-500 focus-within:ring-2 focus-within:ring-river-200">
-      <div className="flex items-center gap-1 border-b border-river-100 bg-river-50/60 px-1.5 py-1">
-        {[
-          { label: "B", title: "Bold", name: "bold", className: "font-bold" },
-          { label: "I", title: "Italic", name: "italic", className: "italic" },
-          { label: "U", title: "Underline", name: "underline", className: "underline" },
-          { label: "🔗", title: "Insert link", name: "createLink", className: "" },
-        ].map((item) => (
+      <div className="flex flex-wrap items-center gap-1 border-b border-river-100 bg-river-50/60 px-1.5 py-1">
+        {TOOLS.map((tool) => (
           <button
-            key={item.title}
+            key={tool.title}
             type="button"
-            title={item.title}
-            aria-label={item.title}
+            title={tool.title}
+            aria-label={tool.title}
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => command(item.name)}
-            className={`${toolbarButton} ${item.className}`}
+            onClick={() => command(tool.command)}
+            className={`${toolbarButton} ${tool.className}`}
           >
-            {item.label}
+            {tool.label}
           </button>
         ))}
       </div>
@@ -132,21 +138,27 @@ function DescriptionEditor({
           }
         }}
         role="textbox"
-        aria-multiline="false"
+        aria-multiline="true"
         aria-label={label}
         contentEditable
         suppressContentEditableWarning
-        data-placeholder="Our driver collects you from your hotel…"
-        className="rich-text min-h-9 px-3 py-2 text-sm leading-relaxed text-river-950 outline-none"
-        onInput={(event) => onChange(event.currentTarget.innerHTML)}
+        data-placeholder="Our driver collects you from your hotel… Use • List for the included gear."
+        className="rich-text min-h-24 max-h-72 overflow-y-auto px-3 py-2 text-sm leading-relaxed text-river-950 outline-none"
+        onInput={sync}
         onKeyDown={(event) => {
-          // Enter keeps the description on one line: a block would come back as
-          // a separate itinerary step after saving.
-          if (event.key === "Enter") {
-            event.preventDefault();
-            document.execCommand("insertHTML", false, "<br>");
-            onChange(ref.current?.innerHTML ?? "");
-          }
+          if (event.key !== "Enter") return;
+
+          const selection = window.getSelection();
+          const node = selection?.anchorNode;
+          const element =
+            node instanceof Element ? node : (node?.parentElement ?? null);
+
+          // Inside a list the browser adds the next bullet itself.
+          if (element?.closest("li")) return;
+
+          event.preventDefault();
+          document.execCommand("insertHTML", false, "<br>");
+          sync();
         }}
         onPaste={(event) => {
           event.preventDefault();
@@ -159,11 +171,12 @@ function DescriptionEditor({
 
 /**
  * Itinerary steps: a time the operator types by hand (08:00, Day 1 08:00…), a
- * title and a rich description.
+ * title and a multi-line description with formatting and lists.
  *
- * The list posts as one `<p>` per step in the existing `itinerary` field, so
- * the save action sanitises each step and stores it as one itinerary entry,
- * with the time first so the tour page shows it as the time label.
+ * The steps post as JSON in `itinerary_steps`, and the save action turns each
+ * one into a single entry of the `itinerary` column. Sending structured data
+ * (rather than one HTML document) is what lets a description keep its bullets
+ * instead of being split into extra steps.
  */
 export function ItineraryField({ defaultValue }: { defaultValue?: string[] | null }) {
   // Whatever the column holds (an older save, a null entry, a stray non-array
@@ -207,25 +220,15 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
     });
   };
 
-  const value = steps
-    .filter((step) => step.time.trim() || step.title.trim() || strip(step.description))
-    .map((step) => {
-      const time = escapeHtml(step.time.trim());
-      const title = step.title.trim() ? `<strong>${escapeHtml(step.title.trim())}</strong>` : "";
-      const head = [time, title].filter(Boolean).join(" ");
-      // A step is one paragraph, so a line break the description picked up
-      // (Enter, or a paste) becomes <br>: a <p> inside the step would be split
-      // into a separate itinerary entry by the save action.
-      const description = step.description
-        .replace(/<(?:div|p)\b[^>]*>/gi, "<br>")
-        .replace(/<\/(?:div|p)\s*>/gi, "")
-        .replace(/(?:<br\s*\/?>\s*){2,}/gi, "<br>")
-        .replace(/^(?:\s*<br\s*\/?>)+\s*/i, "")
-        .trim();
-
-      return `<p>${head}${description ? `${head ? "<br>" : ""}${description}` : ""}</p>`;
-    })
-    .join("\n");
+  const payload = JSON.stringify(
+    steps
+      .filter((step) => step.time.trim() || step.title.trim() || strip(step.description))
+      .map((step) => ({
+        time: step.time.trim(),
+        title: step.title.trim(),
+        description: step.description.trim(),
+      })),
+  );
 
   return (
     <div className="block">
@@ -234,7 +237,8 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
           <span className="text-xs font-medium text-river-700">Itinerary</span>
           <p className="mt-1 text-xs text-river-500">
             One card per step. Type the time by hand — 08:00, or Day 1 · 08:00 when the tour runs
-            over several days. Drag the handle to reorder.
+            over several days. The description is multi-line: use the toolbar for bold, italics and
+            bullet or numbered lists. Drag the handle to reorder.
           </p>
         </div>
         <button
@@ -313,7 +317,7 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
         ))}
       </ol>
 
-      <input type="hidden" name="itinerary" value={value} readOnly />
+      <input type="hidden" name="itinerary_steps" value={payload} readOnly />
     </div>
   );
 }
