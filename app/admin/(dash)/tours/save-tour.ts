@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { databaseConfigured, sql } from "@/lib/db";
 import type { TourOption, TourOptionField, TourTier } from "@/lib/db-types";
 import { sanitizeRichText, splitRichTextBlocks } from "@/lib/rich-text";
@@ -16,6 +17,41 @@ import { saveTourAction } from "../actions";
  * photo list, and `saveTourAction` ends in redirect() (which throws), so the
  * write happens in the `finally` block.
  */
+
+/**
+ * `redirect()` and `notFound()` work by throwing, so a catch block around a
+ * save must let their error through untouched: swallowing it would replace the
+ * navigation with "the save failed".
+ */
+function isNavigationError(error: unknown): boolean {
+  const digest = (error as { digest?: unknown } | null)?.digest;
+  return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
+}
+
+/** The real reason a save failed, including the database's own detail. */
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error).slice(0, 400);
+  }
+
+  const extra = error as Error & {
+    code?: string;
+    detail?: string;
+    constraint?: string;
+    column?: string;
+  };
+
+  return [
+    error.message || "Unknown error",
+    extra.code ? `code ${extra.code}` : "",
+    extra.constraint ? `constraint ${extra.constraint}` : "",
+    extra.column ? `column ${extra.column}` : "",
+    extra.detail ?? "",
+  ]
+    .filter(Boolean)
+    .join(" · ")
+    .slice(0, 400);
+}
 
 const BLOCK_FIELDS = new Set(["itinerary"]);
 const PARAGRAPH_FIELDS = new Set(["description"]);
@@ -166,23 +202,33 @@ function readOptions(form: FormData): TourOption[] {
   }
 }
 
-async function saveGallery(form: FormData): Promise<void> {
+/**
+ * The gallery and itinerary live outside `saveTourAction`, so a failure here
+ * used to be logged and forgotten: the form said "saved" while the steps were
+ * gone. Return the message so the caller can show it.
+ */
+async function saveGallery(form: FormData): Promise<string | null> {
   const gallery = readGallery(form);
   const itinerary = readItinerary(form);
   const id = String(form.get("id") ?? "").trim();
   const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
 
   if (!databaseConfigured || (!id && !slug)) {
-    return;
+    return null;
   }
 
   try {
     if (id) {
-      await sql`
+      const rows = await sql`
         update public.tours
         set gallery_urls = ${gallery}, itinerary = ${itinerary}, updated_at = now()
         where id = ${id}
+        returning id
       `;
+
+      if (rows.length === 0) {
+        return `nothing matched id ${id}`;
+      }
     } else {
       await sql`
         update public.tours
@@ -192,7 +238,10 @@ async function saveGallery(form: FormData): Promise<void> {
     }
   } catch (error) {
     console.error("[tours] could not save the gallery or itinerary", error);
+    return describeError(error);
   }
+
+  return null;
 }
 
 /**
@@ -242,13 +291,13 @@ async function applyFallbackPrices(form: FormData): Promise<void> {
   form.set("price_child", String(child));
 }
 
-async function saveOptions(form: FormData): Promise<void> {
+async function saveOptions(form: FormData): Promise<string | null> {
   const options = readOptions(form);
   const id = String(form.get("id") ?? "").trim();
   const slug = slugify(String(form.get("slug") ?? "").trim() || String(form.get("name") ?? ""));
 
   if (!databaseConfigured || (!id && !slug)) {
-    return;
+    return null;
   }
 
   try {
@@ -267,7 +316,10 @@ async function saveOptions(form: FormData): Promise<void> {
     }
   } catch (error) {
     console.error("[tours] could not save the pricing options", error);
+    return describeError(error);
   }
+
+  return null;
 }
 
 export async function saveTourWithRichTextAction(form: FormData): Promise<void> {
@@ -277,20 +329,50 @@ export async function saveTourWithRichTextAction(form: FormData): Promise<void> 
     cleaned.append(key, typeof value === "string" ? clean(key, value) : value);
   }
 
+  const id = String(form.get("id") ?? "").trim();
+  const path = id ? `/admin/tours/${id}` : "/admin/tours/new";
+  let failure: string | null = null;
+
   try {
     await applyFallbackPrices(cleaned);
     await saveTourAction(cleaned);
+  } catch (error) {
+    if (isNavigationError(error)) {
+      throw error;
+    }
+
+    console.error("[tours] could not save the tour", error);
+    failure = `Could not save the tour: ${describeError(error)}`;
   } finally {
-    await saveGallery(cleaned);
-    await saveOptions(cleaned);
+    const galleryError = await saveGallery(cleaned);
+    const optionsError = await saveOptions(cleaned);
+
+    if (galleryError) {
+      console.error("[tours] gallery/itinerary were not saved", galleryError);
+      failure = failure ?? `Photos and itinerary were not saved: ${galleryError}`;
+    }
+
+    if (optionsError) {
+      console.error("[tours] pricing options were not saved", optionsError);
+      failure = failure ?? `Pricing options were not saved: ${optionsError}`;
+    }
+
     // `saveTourAction` ends in redirect(), which throws, so refresh the cached
     // public tour pages here. Revalidation must never throw: if it did, it
     // would replace the redirect and the form would report a failed save.
-    try {
-      revalidateTag("tours", "max");
-      revalidatePath("/tours", "layout");
-    } catch (error) {
-      console.error("[tours] could not revalidate after save", error);
+    if (!failure) {
+      try {
+        revalidateTag("tours", "max");
+        revalidatePath("/tours", "layout");
+      } catch (error) {
+        console.error("[tours] could not revalidate after save", error);
+      }
     }
+  }
+
+  // Report the real reason instead of a blank crash: the edit page shows
+  // `?error=` in a red banner and the operator can fix and retry.
+  if (failure) {
+    redirect(`${path}?error=${encodeURIComponent(failure)}`);
   }
 }
