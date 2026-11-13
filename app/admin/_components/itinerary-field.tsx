@@ -134,6 +134,15 @@ function DescriptionEditor({
         data-placeholder="Our driver collects you from your hotel…"
         className="rich-text min-h-9 px-3 py-2 text-sm leading-relaxed text-river-950 outline-none"
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
+        onKeyDown={(event) => {
+          // Enter keeps the description on one line: a block would come back as
+          // a separate itinerary step after saving.
+          if (event.key === "Enter") {
+            event.preventDefault();
+            document.execCommand("insertHTML", false, "<br>");
+            onChange(ref.current?.innerHTML ?? "");
+          }
+        }}
         onPaste={(event) => {
           event.preventDefault();
           document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
@@ -160,7 +169,9 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
   const [steps, setSteps] = useState<Step[]>(
     initial.length > 0 ? initial : [{ id: 0, time: "", title: "", description: "" }],
   );
-  const nextId = useRef(initial.length);
+  // With no saved steps the list still starts with one empty card, so the
+  // first added step must not reuse its id.
+  const nextId = useRef(Math.max(initial.length, 1));
   const [dragging, setDragging] = useState<number | null>(null);
 
   const patch = (id: number, values: Partial<Step>) => {
@@ -195,7 +206,15 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
       const time = escapeHtml(step.time.trim());
       const title = step.title.trim() ? `<strong>${escapeHtml(step.title.trim())}</strong>` : "";
       const head = [time, title].filter(Boolean).join(" ");
-      const description = step.description.trim();
+      // A step is one paragraph, so a line break the description picked up
+      // (Enter, or a paste) becomes <br>: a <p> inside the step would be split
+      // into a separate itinerary entry by the save action.
+      const description = step.description
+        .replace(/<(?:div|p)\b[^>]*>/gi, "<br>")
+        .replace(/<\/(?:div|p)\s*>/gi, "")
+        .replace(/(?:<br\s*\/?>\s*){2,}/gi, "<br>")
+        .replace(/^(?:\s*<br\s*\/?>)+\s*/i, "")
+        .trim();
 
       return `<p>${head}${description ? `${head ? "<br>" : ""}${description}` : ""}</p>`;
     })
@@ -248,17 +267,23 @@ export function ItineraryField({ defaultValue }: { defaultValue?: string[] | nul
               <input
                 value={step.time}
                 onChange={(event) => patch(step.id, { time: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.preventDefault();
+                }}
                 placeholder="08:00"
                 aria-label={`Time for step ${index + 1}`}
-                className={`${inputClass} w-28 shrink-0 text-center`}
+                className={`${inputClass} w-20 shrink-0 px-2 text-center tabular-nums`}
               />
 
               <input
                 value={step.title}
                 onChange={(event) => patch(step.id, { title: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.preventDefault();
+                }}
                 placeholder="Hotel pickup"
                 aria-label={`Title for step ${index + 1}`}
-                className={inputClass}
+                className={`${inputClass} min-w-0 flex-1`}
               />
 
               <button
