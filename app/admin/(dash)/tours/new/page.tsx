@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { PageHeader, buttonSecondary } from "@/app/admin/_components/ui";
-import { TourForm } from "../tour-form";
+import { storageSetupHint } from "@/lib/storage";
+import { TourEditor } from "../tour-editor";
 
 export const metadata: Metadata = { title: "New tour" };
 
@@ -30,7 +31,7 @@ export default async function NewTourPage({
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
 
-      <TourForm />
+      <TourEditor uploadHint={storageSetupHint()} />
     </div>
   );
 }
