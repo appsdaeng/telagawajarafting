@@ -169,6 +169,32 @@ function readTiers(value: unknown): TourTier[] {
     .slice(0, 12);
 }
 
+/** Like `plainText`, but keeps the line breaks the operator typed. */
+function multilineText(value: unknown, max = 300): string {
+  return String(value ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[ \t]{2,}/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, max);
+}
+
+/** The dropdown choices: one per line, as the field editor posts them. */
+function readChoices(value: unknown): string[] {
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/\r?\n/)
+      : [];
+
+  return list
+    .map((choice) => plainText(choice, 80))
+    .filter(Boolean)
+    .slice(0, 30);
+}
+
 /** Extra guest questions for the option. */
 function readOptionFields(value: unknown): TourOptionField[] {
   if (!Array.isArray(value)) {
@@ -177,12 +203,20 @@ function readOptionFields(value: unknown): TourOptionField[] {
 
   return value
     .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
-    .map((item) => ({
-      label: plainText(item.label, 80),
-      type: plainText(item.type, 20) || "Text",
-      required: item.required === true || item.required === "true",
-    }))
-    .filter((field) => field.label)
+    .map((item) => {
+      const type = /dropdown|select|choice/i.test(plainText(item.type, 40))
+        ? "Dropdown Selector"
+        : "Text";
+
+      return {
+        name: plainText(item.name, 40),
+        label: multilineText(item.label, 300),
+        type,
+        options: type === "Dropdown Selector" ? readChoices(item.options) : [],
+        required: item.required === true || item.required === "true",
+      };
+    })
+    .filter((field) => field.label || field.name)
     .slice(0, 12);
 }
 
