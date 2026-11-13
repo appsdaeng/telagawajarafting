@@ -9,7 +9,8 @@ import {
   buttonSecondary,
 } from "@/app/admin/_components/ui";
 import { deleteTourAction, duplicateTourAction, toggleTourAction } from "../../actions";
-import { TourForm } from "../tour-form";
+import { storageSetupHint } from "@/lib/storage";
+import { TourEditor } from "../tour-editor";
 
 export const metadata: Metadata = { title: "Edit tour" };
 
@@ -56,7 +57,7 @@ export default async function EditTourPage({
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
 
-      <TourForm tour={tour} />
+      <TourEditor tour={tour} uploadHint={storageSetupHint()} />
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-river-100 bg-white p-4">
         <form action={toggleTourAction}>
