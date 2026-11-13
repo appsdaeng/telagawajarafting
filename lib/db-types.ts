@@ -24,8 +24,14 @@ export type TourTier = {
 
 /** An extra question the guest answers when booking this option. */
 export type TourOptionField = {
+  /** Short internal name, e.g. "pickupHotel". */
+  name: string;
+  /** The question, shown to the guest. May run over several lines. */
   label: string;
+  /** "Text" or "Dropdown Selector". */
   type: string;
+  /** The choices a dropdown offers; empty for a text field. */
+  options: string[];
   required: boolean;
 };
 
