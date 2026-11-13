@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TourOption, TourRow } from "@/lib/db-types";
 import { RichTextField } from "@/app/admin/_components/rich-text";
+import { ItineraryField } from "@/app/admin/_components/itinerary-field";
 import { TourGalleryField } from "@/app/admin/_components/tour-gallery-field";
 import { inputClass, labelClass } from "@/app/admin/_components/ui";
 import { saveTourWithRichTextAction } from "./save-tour";
@@ -462,22 +463,7 @@ export function TourEditor({
         </div>
 
         <div className={cardClass}>
-          <h2 className={sectionTitle}>Itinerary</h2>
-          <p className={hintClass}>
-            Press Enter for a new step, use H2/H3 for headings and the list buttons for sub-points.
-            Start a step with a time, e.g. 09:00 Hotel pickup from Ubud.
-          </p>
-          <div className="mt-3">
-            <RichTextField
-              name="itinerary"
-              label="Itinerary"
-              placeholder="Write the itinerary…"
-              defaultValue={tour?.itinerary}
-              blocks
-              resizable
-              minHeight="12rem"
-            />
-          </div>
+          <ItineraryField defaultValue={tour?.itinerary} />
         </div>
 
         <div className={cardClass}>
