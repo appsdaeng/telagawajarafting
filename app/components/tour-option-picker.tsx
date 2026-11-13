@@ -8,6 +8,8 @@ export type PickerOption = {
   description: string;
   field: string;
   price: number;
+  /** Set in Admin → Tours → Price and availability; false hides the option. */
+  active?: boolean;
 };
 
 type Props = {
@@ -33,7 +35,9 @@ export function TourOptionPicker({
   childPrice,
 }: Props) {
   const [selected, setSelected] = useState(0);
-  const chosen = options[selected] ?? null;
+  // Options switched to Inactive stay on the tour but are never offered here.
+  const visible = options.filter((option) => option.active !== false);
+  const chosen = visible[selected] ?? null;
   const perPerson = chosen && chosen.price > 0 ? chosen.price : adultPrice;
 
   const bookingHref = `/?tour=${encodeURIComponent(tourSlug)}${
@@ -46,7 +50,7 @@ export function TourOptionPicker({
 
   return (
     <>
-      {options.length > 0 ? (
+      {visible.length > 0 ? (
         <>
           <div className="mt-4 flex items-baseline justify-between gap-4 border-b border-river-100 pb-3">
             <span className="text-sm text-river-800">From</span>
@@ -57,7 +61,7 @@ export function TourOptionPicker({
           <fieldset className="mt-5">
             <legend className="text-sm font-semibold tracking-tight">Choose an option</legend>
             <div className="mt-3 space-y-2">
-              {options.map((option, index) => {
+              {visible.map((option, index) => {
                 const active = index === selected;
 
                 return (

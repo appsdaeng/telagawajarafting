@@ -60,15 +60,23 @@ export function TourEditor({
   );
 
   // The option window posts the finished option back here, then closes itself.
+  // With an index it replaces that row, otherwise it appends a new option.
   useEffect(() => {
     const receive = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
 
-      const data = event.data as { type?: string; option?: TourOption } | null;
+      const data = event.data as { type?: string; option?: TourOption; index?: number } | null;
 
       if (data?.type !== "tour-price-option-saved" || !data.option) return;
 
-      setOptions((current) => [...current, data.option as TourOption]);
+      const saved = data.option;
+      const index = data.index;
+
+      setOptions((current) =>
+        typeof index === "number" && index >= 0 && index < current.length
+          ? current.map((item, position) => (position === index ? saved : item))
+          : [...current, saved],
+      );
       setDirty(true);
     };
 
@@ -76,11 +84,14 @@ export function TourEditor({
     return () => window.removeEventListener("message", receive);
   }, []);
 
-  const openOptionWindow = () => {
+  /** Opens the option window; pass the row position to edit it, or nothing to add. */
+  const openOptionWindow = (index?: number) => {
     if (!tour) return;
 
+    const query = typeof index === "number" ? `?index=${index}` : "";
+
     window.open(
-      `/admin/tours/${tour.id}/options/new`,
+      `/admin/tours/${tour.id}/options/new${query}`,
       `tour-option-${tour.id}`,
       "width=1000,height=920,menubar=no,toolbar=no,location=no,status=no",
     );
@@ -507,7 +518,7 @@ export function TourEditor({
             </div>
             <button
               type="button"
-              onClick={openOptionWindow}
+              onClick={() => openOptionWindow()}
               disabled={!tour}
               className="inline-flex items-center gap-1.5 rounded-lg border border-river-200 bg-white px-3.5 py-2 text-sm font-semibold text-river-800 transition-colors hover:bg-river-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -530,14 +541,20 @@ export function TourEditor({
                     <th className={plansTh}>Tiers</th>
                     <th className={plansTh}>Price from</th>
                     <th className={plansTh}>Status</th>
-                    <th className={`${plansTh} w-12`} />
+                    <th className={`${plansTh} w-24`}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {options.map((option, index) => (
                     <tr key={`${option.name}-${index}`} className="border-t border-river-100">
                       <td className="px-3 py-2.5">
-                        <p className="font-medium text-river-900">{option.name || "Option"}</p>
+                        <button
+                          type="button"
+                          onClick={() => openOptionWindow(index)}
+                          className="text-left font-medium text-river-900 underline-offset-2 hover:underline"
+                        >
+                          {option.name || "Option"}
+                        </button>
                         {option.description ? (
                           <p className="mt-0.5 text-xs text-river-500">{option.description}</p>
                         ) : null}
@@ -557,20 +574,29 @@ export function TourEditor({
                           <span className="font-medium text-emerald-700">Active</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <button
-                          type="button"
-                          aria-label={`Remove ${option.name || "option"}`}
-                          onClick={() => {
-                            setOptions((current) =>
-                              current.filter((_, position) => position !== index),
-                            );
-                            setDirty(true);
-                          }}
-                          className="rounded-md px-2 py-1 text-xs text-river-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                        >
-                          ✕
-                        </button>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openOptionWindow(index)}
+                            className="rounded-md border border-river-200 px-2 py-1 text-xs font-medium text-river-800 transition-colors hover:bg-river-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${option.name || "option"}`}
+                            onClick={() => {
+                              setOptions((current) =>
+                                current.filter((_, position) => position !== index),
+                              );
+                              setDirty(true);
+                            }}
+                            className="rounded-md px-2 py-1 text-xs text-river-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

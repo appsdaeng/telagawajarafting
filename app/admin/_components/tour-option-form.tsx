@@ -19,19 +19,47 @@ const emptyTier = (): TourTier => ({ name: "", price: 0, min: 1, max: 10, priceT
 const emptyField = (): TourOptionField => ({ label: "", type: "Text", required: true });
 
 /**
- * The "Add option" window.
+ * The option window.
  *
  * It is opened from the tour editor's Price and availability tab in its own
- * browser window. There is no server round trip: the finished option is posted
- * back to the opener with postMessage and the window closes, so the editor can
- * show it in the table immediately and save it with the tour.
+ * browser window, either empty (Add) or pre-filled from an existing row (Edit).
+ * There is no server round trip: the finished option is posted back to the
+ * opener with postMessage and the window closes, so the editor can show it in
+ * the table immediately and save it with the tour.
  */
-export function TourOptionForm({ tourId, tourName }: { tourId: string; tourName: string }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [tiers, setTiers] = useState<TourTier[]>([emptyTier()]);
-  const [fields, setFields] = useState<TourOptionField[]>([]);
-  const [status, setStatus] = useState("Active");
+export function TourOptionForm({
+  tourId,
+  tourName,
+  option,
+  optionIndex,
+}: {
+  tourId: string;
+  tourName: string;
+  /** Set when the window was opened from an existing row (`?index=`). */
+  option?: TourOption;
+  optionIndex?: number;
+}) {
+  const editing = optionIndex !== undefined;
+  // Options saved before tiers existed only carry a single price and field.
+  const initialTiers: TourTier[] = option
+    ? option.tiers?.length
+      ? option.tiers.map((tier) => ({ ...tier }))
+      : [
+          {
+            name: "Adult",
+            price: option.price || 0,
+            min: 1,
+            max: 10,
+            priceType: option.field || "Per person",
+          },
+        ]
+    : [emptyTier()];
+
+  const [name, setName] = useState(option?.name ?? "");
+  const [description, setDescription] = useState(option?.description ?? "");
+  const [tiers, setTiers] = useState<TourTier[]>(initialTiers);
+  const [fields, setFields] = useState<TourOptionField[]>(option?.fields ?? []);
+  const [status, setStatus] = useState(option?.active === false ? "Inactive" : "Active");
   const [error, setError] = useState<string | null>(null);
 
   const patchTier = (index: number, patch: Partial<TourTier>) => {
@@ -69,7 +97,7 @@ export function TourOptionForm({ tourId, tourName }: { tourId: string; tourName:
       Number.POSITIVE_INFINITY,
     );
 
-    const option: TourOption = {
+    const saved: TourOption = {
       name: trimmedName,
       description: description.trim(),
       price: Number.isFinite(cheapest) ? cheapest : 0,
@@ -80,11 +108,14 @@ export function TourOptionForm({ tourId, tourName }: { tourId: string; tourName:
     };
 
     if (!window.opener) {
-      setError("This window was not opened from the tour editor, so the option cannot be added.");
+      setError("This window was not opened from the tour editor, so the option cannot be saved.");
       return;
     }
 
-    window.opener.postMessage({ type: "tour-price-option-saved", option }, window.location.origin);
+    window.opener.postMessage(
+      { type: "tour-price-option-saved", option: saved, index: optionIndex },
+      window.location.origin,
+    );
     window.close();
   };
 
@@ -92,7 +123,9 @@ export function TourOptionForm({ tourId, tourName }: { tourId: string; tourName:
     <div className="flex min-h-screen flex-col">
       <div className="flex-1 p-6 sm:p-10">
         <p className="text-sm text-river-500">Tour: {tourName}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-river-950">Add option</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-river-950">
+          {editing ? "Edit option" : "Add option"}
+        </h1>
 
         <div className="mt-6 space-y-5">
           <label className="block">
