@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/app/components/json-ld";
+import { TourAvailability } from "@/app/components/tour-availability";
+import { TourBookingProvider } from "@/app/components/tour-booking";
 import { TourGallery } from "@/app/components/tour-gallery";
 import { TourOptionPicker } from "@/app/components/tour-option-picker";
 import { breadcrumbJsonLd, tourJsonLd } from "@/lib/schema";
@@ -127,6 +129,9 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
           <p className="mt-3 text-lg text-river-700">{t.tagline}</p>
         </header>
 
+        {/* The price panel and the availability section share the date and the
+            party size, so the provider sits above both of them. */}
+        <TourBookingProvider>
         <div className="mt-10 grid gap-12 lg:grid-cols-[1.6fr_1fr]">
           <div>
             <div className="space-y-4 leading-relaxed text-river-900">
@@ -149,6 +154,15 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
                 ))}
               </ul>
             </section>
+
+            {/* Hidden until Check availability is pressed in the price panel. */}
+            <TourAvailability
+              tourSlug={tour.slug}
+              options={options}
+              duration={t.duration}
+              meetingPoint={t.meetingPoint}
+              adultPrice={t.priceAdult}
+            />
 
             {itinerary.length > 0 ? (
               <section className="mt-10">
@@ -233,7 +247,6 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
           <aside className="h-fit rounded-3xl border border-river-100 p-6 lg:sticky lg:top-24">
             <h2 className="text-sm font-semibold tracking-widest text-river-500 uppercase">Price</h2>
             <TourOptionPicker
-              tourSlug={tour.slug}
               tourName={t.name}
               siteName={siteConfig.name}
               options={options}
@@ -242,6 +255,7 @@ export default async function TourDetailPage(props: PageProps<"/tours/[slug]">) 
             />
           </aside>
         </div>
+        </TourBookingProvider>
       </div>
     </article>
   );

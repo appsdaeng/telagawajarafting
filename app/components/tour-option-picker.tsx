@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatRupiah, whatsappLink } from "@/lib/tours";
+import { tomorrowDate, useTourBooking } from "@/app/components/tour-booking";
 
 export type PickerOption = {
   name: string;
@@ -13,7 +14,6 @@ export type PickerOption = {
 };
 
 type Props = {
-  tourSlug: string;
   tourName: string;
   siteName: string;
   options: PickerOption[];
@@ -21,119 +21,229 @@ type Props = {
   childPrice: number;
 };
 
+function PeopleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 shrink-0" fill="currentColor">
+      <path d="M7 9.5a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Zm0 1.25c-2.3 0-4.5 1.2-4.5 2.9v1.1h9V13.6c0-1.7-2.2-2.85-4.5-2.85Zm6.6-1.35a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8Zm.4 1.35c-.5 0-1 .06-1.4.18.9.75 1.3 1.7 1.3 2.67v1.15H17v-1.15c0-1.6-1.7-2.85-3-2.85Z" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="mt-0.5 size-4 shrink-0 text-emerald-600"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="10" cy="10" r="7.25" />
+      <path d="m6.75 10.25 2.2 2.2 4.3-4.4" />
+    </svg>
+  );
+}
+
+function Counter({
+  label,
+  hint,
+  value,
+  min,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+  min: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2">
+      <span>
+        <span className="block text-sm font-medium text-river-900">{label}</span>
+        <span className="block text-xs text-river-500">{hint}</span>
+      </span>
+      <span className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label={`One fewer ${label.toLowerCase()}`}
+          disabled={value <= min}
+          onClick={() => onChange(value - 1)}
+          className="grid size-8 place-items-center rounded-full border border-river-200 text-river-700 transition-colors hover:bg-river-50 disabled:opacity-40"
+        >
+          −
+        </button>
+        <span aria-live="polite" className="w-8 text-center text-sm font-semibold tabular-nums">
+          {value}
+        </span>
+        <button
+          type="button"
+          aria-label={`One more ${label.toLowerCase()}`}
+          onClick={() => onChange(value + 1)}
+          className="grid size-8 place-items-center rounded-full border border-river-200 text-river-700 transition-colors hover:bg-river-50"
+        >
+          +
+        </button>
+      </span>
+    </div>
+  );
+}
+
 /**
- * Price panel for a tour page: the guest picks a bookable option, the price
- * updates, and the chosen option is carried through to the booking widget with
- * `?option=…` so the reservation is created against the same option.
+ * Price panel for a tour page.
+ *
+ * It holds only what the guest must decide here — the date and how many people
+ * are coming — and shows the cheapest price as "From". The options themselves
+ * appear in the page body under Highlights once Check availability is pressed,
+ * so the panel stays short.
  */
 export function TourOptionPicker({
-  tourSlug,
   tourName,
   siteName,
   options,
   adultPrice,
   childPrice,
 }: Props) {
-  const [selected, setSelected] = useState(0);
+  const { date, setDate, minDate, adults, children, setAdults, setChildren, reveal } =
+    useTourBooking();
+  const [open, setOpen] = useState(true);
+
   // Options switched to Inactive stay on the tour but are never offered here.
   const visible = options.filter((option) => option.active !== false);
-  const chosen = visible[selected] ?? null;
-  const perPerson = chosen && chosen.price > 0 ? chosen.price : adultPrice;
+  const cheapest = visible.reduce(
+    (min, option) => (option.price > 0 && option.price < min ? option.price : min),
+    Number.POSITIVE_INFINITY,
+  );
+  const perPerson = Number.isFinite(cheapest) ? cheapest : adultPrice;
+  // A child price only exists on the tour itself; an option is per person.
+  const childUnit = visible.length > 0 ? perPerson : childPrice;
+  const total = perPerson * adults + childUnit * children;
 
-  const bookingHref = `/?tour=${encodeURIComponent(tourSlug)}${
-    chosen ? `&option=${encodeURIComponent(chosen.name)}` : ""
-  }#book`;
-
-  const message = `Hi ${siteName}, I would like to book ${tourName}${
-    chosen ? ` — ${chosen.name}` : ""
-  }. Date: ___, people: ___.`;
+  const message = `Hi ${siteName}, I would like to book ${tourName}. Date: ${
+    date || "___"
+  }, people: ${adults} adult${adults === 1 ? "" : "s"}${children ? `, ${children} child` : ""}.`;
 
   return (
     <>
-      {visible.length > 0 ? (
-        <>
-          <div className="mt-4 flex items-baseline justify-between gap-4 border-b border-river-100 pb-3">
-            <span className="text-sm text-river-800">From</span>
-            <span className="text-2xl font-semibold">{formatRupiah(perPerson)}</span>
-          </div>
-          <p className="mt-1 text-xs text-river-500">per person for the selected option</p>
+      <div className="mt-4 flex items-baseline justify-between gap-4 border-b border-river-100 pb-3">
+        <span className="text-sm text-river-800">From</span>
+        <span className="text-2xl font-semibold">{formatRupiah(perPerson)}</span>
+      </div>
+      <p className="mt-1 text-xs text-river-500">per person for the selected option</p>
 
-          <fieldset className="mt-5">
-            <legend className="text-sm font-semibold tracking-tight">Choose an option</legend>
-            <div className="mt-3 space-y-2">
-              {visible.map((option, index) => {
-                const active = index === selected;
+      <label className="mt-4 block">
+        <span className="text-sm font-semibold tracking-tight text-river-900">Select date</span>
+        <input
+          type="date"
+          value={date}
+          min={minDate || undefined}
+          onChange={(event) => setDate(event.target.value)}
+          className="mt-2 w-full rounded-xl border border-river-200 bg-white px-3 py-2.5 text-sm text-river-950 shadow-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200"
+        />
+      </label>
 
-                return (
-                  <label
-                    key={`${index}-${option.name}`}
-                    className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition-colors ${
-                      active
-                        ? "border-river-500 bg-river-50 ring-1 ring-river-200"
-                        : "border-river-100 hover:border-river-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="tour-option"
-                      checked={active}
-                      onChange={() => setSelected(index)}
-                      className="mt-1"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="text-sm font-medium text-river-900">
-                          {option.name || "Option"}
-                        </span>
-                        {option.price > 0 ? (
-                          <span className="text-sm font-semibold">{formatRupiah(option.price)}</span>
-                        ) : null}
-                      </span>
-                      {option.field ? (
-                        <span className="block text-xs font-medium text-river-500">
-                          {option.field}
-                        </span>
-                      ) : null}
-                      {option.description ? (
-                        <span className="mt-1 block text-xs leading-relaxed text-river-700">
-                          {option.description}
-                        </span>
-                      ) : null}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        </>
-      ) : (
-        <dl className="mt-4 space-y-3">
-          <div className="flex items-baseline justify-between gap-4 border-b border-river-100 pb-3">
-            <dt className="text-sm text-river-800">Adult</dt>
-            <dd className="text-xl font-semibold">{formatRupiah(adultPrice)}</dd>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-sm text-river-800">Child (7–12)</dt>
-            <dd className="text-xl font-semibold">{formatRupiah(childPrice)}</dd>
-          </div>
-        </dl>
-      )}
+      {/* Participants */}
+      <div className="mt-3 overflow-hidden rounded-xl border border-river-200">
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          aria-expanded={open}
+          className="flex w-full items-center gap-2 px-3 py-3 text-sm font-semibold text-river-900 transition-colors hover:bg-river-50"
+        >
+          <PeopleIcon />
+          Participants
+          <span className="ml-auto text-xs font-normal text-river-500">
+            {adults} adult{adults === 1 ? "" : "s"}
+            {children ? ` · ${children} child${children === 1 ? "" : "ren"}` : ""}
+          </span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            className={`size-4 shrink-0 text-river-500 transition-transform ${open ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m6 8 4 4 4-4" />
+          </svg>
+        </button>
 
-      <p className="mt-3 text-xs text-river-600">
-        Prices per person, including equipment, guide, lunch and hotel pickup. Paid at base camp on
-        the day — no card details online.
+        {open ? (
+          <div className="border-t border-river-100 px-3 pt-1 pb-3">
+            <Counter label="Adult" hint="Age 12–65" value={adults} min={1} onChange={setAdults} />
+            <Counter
+              label="Child"
+              hint="Age 11 and younger"
+              value={children}
+              min={0}
+              onChange={setChildren}
+            />
+            <p className="mt-2 text-xs text-river-500">Ages older than 66 are not permitted.</p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-3 w-full rounded-full bg-river-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-river-700"
+            >
+              Continue
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex items-baseline justify-between gap-4 text-sm">
+        <span className="text-river-700">
+          {adults} adult{adults === 1 ? "" : "s"}
+          {children ? ` · ${children} child${children === 1 ? "" : "ren"}` : ""}
+        </span>
+        <span className="font-semibold">{formatRupiah(total)}</span>
+      </div>
+      <p className="mt-1 text-xs text-river-500">
+        Prices per person, including equipment, guide, lunch and hotel pickup.
       </p>
-      <a
-        href={bookingHref}
-        className="mt-6 block rounded-full bg-river-600 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-river-700"
+
+      <button
+        type="button"
+        onClick={() => {
+          if (!date) setDate(tomorrowDate());
+          reveal();
+        }}
+        className="mt-4 block w-full rounded-full bg-river-600 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-river-700"
       >
         Check availability
-      </a>
+      </button>
+
+      <ul className="mt-4 space-y-3 border-t border-river-100 pt-4">
+        <li className="flex gap-2.5">
+          <CheckIcon />
+          <div>
+            <p className="text-sm font-semibold text-river-900">Free cancellation</p>
+            <p className="text-xs leading-relaxed text-river-600">
+              Cancel up to 24 hours in advance for a full refund
+            </p>
+          </div>
+        </li>
+        <li className="flex gap-2.5">
+          <CheckIcon />
+          <div>
+            <p className="text-sm font-semibold text-river-900">Easy payment</p>
+            <p className="text-xs leading-relaxed text-river-600">
+              Easy Payment method with Card, PayPal, QR, E-Wallet, Google Pay, Apple Pay, Cash on
+              Arrival
+            </p>
+          </div>
+        </li>
+      </ul>
+
       <a
         href={whatsappLink(message)}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-2 block rounded-full border border-river-300 px-5 py-2.5 text-center text-sm font-semibold text-river-800 transition-colors hover:bg-river-50"
+        className="mt-3 block rounded-full border border-river-300 px-5 py-2.5 text-center text-sm font-semibold text-river-800 transition-colors hover:bg-river-50"
       >
         Ask on WhatsApp
       </a>
