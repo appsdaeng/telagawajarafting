@@ -4,7 +4,7 @@ import Link from "next/link";
 import { JsonLd } from "@/app/components/json-ld";
 import { breadcrumbJsonLd } from "@/lib/schema";
 import { getTourPhotos } from "@/lib/tour-photo";
-import { formatRupiah, siteConfig, tours, whatsappLink } from "@/lib/tours";
+import { formatRupiah, tours } from "@/lib/tours";
 
 export const metadata: Metadata = {
   title: "Rafting Tours & Prices in Bali",
@@ -112,16 +112,12 @@ export default async function ToursPage() {
                     </div>
                   </dl>
                   <div className="space-y-2">
-                    <a
-                      href={whatsappLink(
-                        `Hi ${siteConfig.name}, I would like to book the ${tour.name}. Date: ___, people: ___`,
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      href={`/tours/${tour.slug}`}
                       className="block rounded-full bg-river-600 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-river-700"
                     >
                       Book this tour
-                    </a>
+                    </Link>
                     <Link
                       href={`/tours/${tour.slug}`}
                       className="block rounded-full px-5 py-2 text-center text-sm font-semibold text-river-700 hover:bg-white"
