@@ -148,6 +148,8 @@ export type CreateBookingInput = {
   notes?: string;
   /** Per-person price of a selected tour option; overrides the date rate. */
   unitPrice?: number;
+  /** Coupon percent taken off the total (prepaid bookings only). */
+  discountPercent?: number;
   source: BookingSource;
   createdById?: string | null;
   paymentStatus?: PaymentStatus;
@@ -180,10 +182,15 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingR
   }
 
   const price = await priceFor(tour, input.date);
-  const total =
+  const gross =
     input.unitPrice && input.unitPrice > 0
       ? input.unitPrice * (input.adults + input.children)
       : quote(price, input.adults, input.children);
+  // A coupon comes off the gross total; the row only stores what is charged.
+  const off = input.discountPercent
+    ? Math.round((gross * Math.min(100, Math.max(0, input.discountPercent))) / 100)
+    : 0;
+  const total = Math.max(0, gross - off);
   const paidAt = input.paymentStatus === "PAID" ? new Date() : null;
 
   return sql.begin(async (tx) => {
