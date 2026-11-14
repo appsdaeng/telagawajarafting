@@ -213,14 +213,16 @@ function readOptionFields(value: unknown): TourOptionField[] {
 
       return {
         name: plainText(item.name, 40),
-        label: multilineText(item.label, 300),
+        // The label is the one-line heading; the text under it may be several lines.
+        label: plainText(item.label, 120),
+        text: multilineText(item.text, 500),
         type,
         options: type === "Dropdown Selector" ? readChoices(item.options) : [],
         // A read-only field is information for the guest, never a question.
         required: type === "Read Only" ? false : item.required === true || item.required === "true",
       };
     })
-    .filter((field) => field.label || field.name)
+    .filter((field) => field.label || field.text || field.name)
     .slice(0, 12);
 }
 
