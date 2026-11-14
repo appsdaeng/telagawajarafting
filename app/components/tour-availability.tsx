@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import type { TourTier } from "@/lib/db-types";
 import { formatRupiah } from "@/lib/tours";
+import { tierForParty } from "@/lib/tour-options";
 import { useTourBooking } from "@/app/components/tour-booking";
 
 export type AvailabilityOption = {
   name: string;
   description: string;
   price: number;
+  /** Price bands by party size, set in Admin → Tours → Price and availability. */
+  tiers?: TourTier[];
   /** Tier label of the first price band, e.g. "Per person". */
   field?: string;
   /** Set in Admin → Tours → Price and availability; false hides the option. */
@@ -143,7 +147,11 @@ export function TourAvailability({
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {visible.map((option, index) => {
             const active = index === selected;
-            const unit = option.price > 0 ? option.price : adultPrice;
+            const tier = tierForParty(option, party);
+            // A priced tier list decides the price for this party size; when
+            // none covers it, the option is not offered for that many guests.
+            const covered = !option.tiers?.length || Boolean(tier);
+            const unit = tier?.price || (option.price > 0 ? option.price : adultPrice);
             const total = unit * party;
             const long = option.description.length > 140;
             const open = expanded.includes(index);
@@ -202,14 +210,26 @@ export function TourAvailability({
                 </ul>
 
                 <div className="mt-auto pt-4">
-                  <p className="text-lg font-semibold">{formatRupiah(total)}</p>
-                  <p className="text-xs text-river-600">
-                    {party} {party === 1 ? "guest" : "guests"} × {formatRupiah(unit)}
-                    {option.field ? ` · ${option.field}` : ""}
-                  </p>
-                  <p className="mt-1 text-xs text-river-500">All taxes and fees included</p>
+                  {covered ? (
+                    <>
+                      <p className="text-lg font-semibold">{formatRupiah(total)}</p>
+                      <p className="text-xs text-river-600">
+                        {party} {party === 1 ? "guest" : "guests"} × {formatRupiah(unit)}
+                        {tier?.name ? ` · ${tier.name}` : option.field ? ` · ${option.field}` : ""}
+                      </p>
+                      <p className="mt-1 text-xs text-river-500">All taxes and fees included</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-lg font-semibold text-river-500">Ask us</p>
+                      <p className="text-xs text-river-600">
+                        Not bookable online for {party} {party === 1 ? "guest" : "guests"}. Message
+                        us and we will arrange it.
+                      </p>
+                    </>
+                  )}
 
-                  {active ? (
+                  {active && covered ? (
                     <a
                       href={`/tours/${encodeURIComponent(tourSlug)}/book?option=${encodeURIComponent(
                         option.name,
@@ -230,7 +250,7 @@ export function TourAvailability({
                     >
                       Continue
                     </a>
-                  ) : (
+                  ) : covered ? (
                     <button
                       type="button"
                       onClick={() => setSelected(index)}
@@ -238,7 +258,7 @@ export function TourAvailability({
                     >
                       Select
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </article>
             );
