@@ -12,6 +12,7 @@ import {
   type PaymentMethodId,
 } from "@/lib/coupons";
 import { formatRupiah } from "@/lib/tours";
+import { priceForParty } from "@/lib/tour-options";
 
 type Props = {
   slug: string;
@@ -113,7 +114,11 @@ export function CheckoutPage({
   const fields: TourOptionField[] = option?.fields ?? [];
   const adults = initialAdults;
   const children = initialChildren;
-  const unit = option && option.price > 0 ? option.price : adultPrice;
+  const party = adults + children;
+  // The tier that covers this party size sets the price, exactly as the tour
+  // page and the booking API do.
+  const tierPrice = option ? priceForParty(option, party) : 0;
+  const unit = tierPrice > 0 ? tierPrice : option && option.price > 0 ? option.price : adultPrice;
   const childUnit = option ? unit : childPrice;
   const gross = unit * adults + childUnit * children;
   const discount = discountFor(gross, coupon);
