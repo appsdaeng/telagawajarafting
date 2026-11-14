@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { getTourById } from "@/lib/bookings";
+import { asTourOptions } from "@/lib/tour-options";
 import { TourOptionForm } from "@/app/admin/_components/tour-option-form";
 
 export const metadata: Metadata = { title: "Tour option" };
@@ -29,7 +30,10 @@ export default async function NewTourOptionPage({
     notFound();
   }
 
-  const options = Array.isArray(tour.pricing_options) ? tour.pricing_options : [];
+  // asTourOptions, not a bare Array.isArray: the jsonb column can hold a JSON
+  // string or an object, and rejecting those here made every Edit open the
+  // empty "Add option" form instead of the saved option.
+  const options = asTourOptions(tour.pricing_options);
   const position = Number(index);
   const editing =
     index !== undefined && Number.isInteger(position) && position >= 0 && position < options.length
