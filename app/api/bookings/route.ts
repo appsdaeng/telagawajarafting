@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { BookingError, createBooking, getTourBySlug } from "@/lib/bookings";
+import { findCoupon, isPaymentMethod } from "@/lib/coupons";
 import { databaseConfigured, sql } from "@/lib/db";
 import { notifyBookingCreated } from "@/lib/email";
 import { createSnapTransaction, midtransConfigured } from "@/lib/payments/midtrans";
@@ -17,6 +18,8 @@ type Payload = {
   hotel?: string;
   notes?: string;
   option?: string;
+  coupon?: string;
+  paymentMethod?: string;
 };
 
 function clean(value: unknown, max = 200): string {
@@ -31,6 +34,9 @@ function clean(value: unknown, max = 200): string {
  *    while payment is pending
  *  - otherwise → returns the code for the confirmation page, with payment settled
  *    by staff exactly as the site works today
+ *
+ * A coupon (see lib/coupons) is only for prepaid bookings, so it is refused with
+ * cash on arrival, and it comes off the total inside createBooking.
  */
 export async function POST(request: Request): Promise<Response> {
   if (!databaseConfigured) {
@@ -54,6 +60,25 @@ export async function POST(request: Request): Promise<Response> {
   const hotel = clean(body.hotel, 160);
   const notes = clean(body.notes, 800);
   const optionName = clean(body.option, 120);
+  const couponCode = clean(body.coupon, 20);
+  const coupon = findCoupon(couponCode);
+  const paymentMethod = clean(body.paymentMethod, 20).toLowerCase();
+
+  if (paymentMethod && !isPaymentMethod(paymentMethod)) {
+    return NextResponse.json({ error: "Pick a payment method from the list." }, { status: 400 });
+  }
+
+  if (couponCode && !coupon) {
+    return NextResponse.json({ error: "That coupon code is not valid." }, { status: 400 });
+  }
+
+  // A coupon is only for prepaid bookings: cash at the venue is not allowed.
+  if (coupon && paymentMethod === "cash") {
+    return NextResponse.json(
+      { error: "Coupons cannot be used with cash on arrival. Pay online or remove the coupon." },
+      { status: 400 },
+    );
+  }
 
   if (!name) {
     return NextResponse.json({ error: "A name is required." }, { status: 400 });
@@ -104,8 +129,14 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // The chosen option is part of the reservation, so staff see it in the notes
-  // and everyone is charged the option's tier price.
-  const bookingNotes = [option ? `Option: ${option.name}` : "", notes]
+  // and everyone is charged the option's tier price. A coupon is recorded with
+  // the reason the booking is non-refundable, so staff are not surprised by it.
+  const bookingNotes = [
+    option ? `Option: ${option.name}` : "",
+    coupon ? `Coupon ${coupon.code} (-${coupon.percent}%), non-refundable` : "",
+    paymentMethod ? `Payment method: ${paymentMethod}` : "",
+    notes,
+  ]
     .filter(Boolean)
     .join(" · ");
 
@@ -122,11 +153,15 @@ export async function POST(request: Request): Promise<Response> {
       hotel,
       notes: bookingNotes,
       unitPrice: option?.price,
+      discountPercent: coupon?.percent ?? 0,
+      paymentMethod: paymentMethod || undefined,
       source: "ONLINE",
     });
 
     const payments = await getPaymentSettings();
-    const canCharge = payments.gatewayEnabled && midtransConfigured();
+    // Cash at the venue is settled by staff, never by the gateway.
+    const canCharge =
+      paymentMethod !== "cash" && payments.gatewayEnabled && midtransConfigured();
 
     if (canCharge) {
       const amount =
