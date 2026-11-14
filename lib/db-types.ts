@@ -28,7 +28,7 @@ export type TourOptionField = {
   name: string;
   /** The question, shown to the guest. May run over several lines. */
   label: string;
-  /** "Text" or "Dropdown Selector". */
+  /** "Text", "Dropdown Selector" or "Read Only" (information, no answer). */
   type: string;
   /** The choices a dropdown offers; empty for a text field. */
   options: string[];
