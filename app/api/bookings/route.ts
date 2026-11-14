@@ -4,6 +4,7 @@ import { findCoupon, isPaymentMethod } from "@/lib/coupons";
 import { databaseConfigured, sql } from "@/lib/db";
 import { notifyBookingCreated } from "@/lib/email";
 import { createSnapTransaction, midtransConfigured } from "@/lib/payments/midtrans";
+import { priceForParty, tierForParty } from "@/lib/tour-options";
 import { getBookingSettings, getPaymentSettings } from "@/lib/settings";
 
 type Payload = {
@@ -128,6 +129,17 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  // Every tier covers its own guest range; outside them the option is not sold
+  // online, so a stale tab cannot book a price that does not exist.
+  if (option && option.tiers?.length && !tierForParty(option, adults + children)) {
+    return NextResponse.json(
+      {
+        error: `This option is not bookable online for ${adults + children} guests. Message us and we will arrange it.`,
+      },
+      { status: 409 },
+    );
+  }
+
   // The chosen option is part of the reservation, so staff see it in the notes
   // and everyone is charged the option's tier price. A coupon is recorded with
   // the reason the booking is non-refundable, so staff are not surprised by it.
@@ -139,6 +151,12 @@ export async function POST(request: Request): Promise<Response> {
   ]
     .filter(Boolean)
     .join(" · ");
+
+  // The option's tier for this party size decides the per-person price, so the
+  // charge matches what the tour page and the checkout page quoted.
+  const optionUnit = option
+    ? priceForParty(option, adults + children) || option.price
+    : undefined;
 
   try {
     const booking = await createBooking({
@@ -152,7 +170,7 @@ export async function POST(request: Request): Promise<Response> {
       guestPhone: phone,
       hotel,
       notes: bookingNotes,
-      unitPrice: option?.price,
+      unitPrice: optionUnit,
       discountPercent: coupon?.percent ?? 0,
       paymentMethod: paymentMethod || undefined,
       source: "ONLINE",

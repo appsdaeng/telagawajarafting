@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { TourTier } from "@/lib/db-types";
 import { formatRupiah, whatsappLink } from "@/lib/tours";
+import { priceForParty } from "@/lib/tour-options";
 import { tomorrowDate, useTourBooking } from "@/app/components/tour-booking";
 
 export type PickerOption = {
@@ -9,6 +11,8 @@ export type PickerOption = {
   description: string;
   field: string;
   price: number;
+  /** Price bands by party size, set in Admin → Tours → Price and availability. */
+  tiers?: TourTier[];
   /** Set in Admin → Tours → Price and availability; false hides the option. */
   active?: boolean;
 };
@@ -113,8 +117,14 @@ export function TourOptionPicker({
 
   // Options switched to Inactive stay on the tour but are never offered here.
   const visible = options.filter((option) => option.active !== false);
+  const party = adults + children;
+  // The cheapest option for this party size: its tier price decides, so a
+  // family of four is quoted the 4–5 tier rather than the solo rate.
   const cheapest = visible.reduce(
-    (min, option) => (option.price > 0 && option.price < min ? option.price : min),
+    (min, option) => {
+      const price = priceForParty(option, party) || option.price;
+      return price > 0 && price < min ? price : min;
+    },
     Number.POSITIVE_INFINITY,
   );
   const perPerson = Number.isFinite(cheapest) ? cheapest : adultPrice;
