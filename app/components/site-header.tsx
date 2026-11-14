@@ -6,7 +6,7 @@ const navigation = [
   { href: "/tours", label: "Rafting tours" },
   { href: "/gallery", label: "Gallery" },
   { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Contact" },
+  { href: "/about-us", label: "About Us" },
 ];
 
 /**
