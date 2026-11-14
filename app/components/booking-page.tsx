@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { TourOption, TourOptionField } from "@/lib/db-types";
 import { departureTimes } from "@/lib/availability";
 import { formatRupiah } from "@/lib/tours";
+import { priceForParty, tierForParty } from "@/lib/tour-options";
 
 type Slot = {
   time: string;
@@ -154,10 +155,12 @@ export function BookingPage({
   const visible = options.filter((option) => option.active !== false);
   const option = visible.find((item) => item.name === initialOption) ?? visible[0] ?? null;
   const fields: TourOptionField[] = option?.fields ?? [];
-  const unit = option && option.price > 0 ? option.price : adultPrice;
+  const party = adults + children;
+  // The option's tier for this party size decides the price per person.
+  const tierPrice = option ? priceForParty(option, party) : 0;
+  const unit = tierPrice > 0 ? tierPrice : option && option.price > 0 ? option.price : adultPrice;
   // A separate child price only exists on the tour itself; an option is per person.
   const childUnit = option ? unit : childPrice;
-  const party = adults + children;
   const total = unit * adults + childUnit * children;
 
   // Load the departures for the chosen date. All state lands in the async body,
@@ -227,6 +230,13 @@ export function BookingPage({
 
     if (!time || !(slots ?? []).some((slot) => slot.time === time)) {
       setError("Choose a departure time.");
+      return;
+    }
+
+    // The party must still fall inside one of the option's tiers: the guest can
+    // change the counters after arriving from a card.
+    if (option && option.tiers?.length && !tierForParty(option, party)) {
+      setError(`This option is not available for ${party} guests. Choose another number.`);
       return;
     }
 
