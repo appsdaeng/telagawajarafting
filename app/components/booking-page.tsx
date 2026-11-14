@@ -112,10 +112,9 @@ function Stepper({
 /**
  * The booking window opened from an option card on the tour page.
  *
- * It is a single page: pick the date, the departure, the guests and answer the
- * option's extra questions, with the running total beside it. The reservation
- * is created by the same /api/bookings endpoint the home page uses, so the
- * seats, prices and confirmation are identical.
+ * It picks the date, the departure, the guests and the answers to the option's
+ * extra questions. The guest's details, a coupon and the payment method are
+ * collected on the checkout page, which this window hands over to.
  */
 export function BookingPage({
   slug,
@@ -143,11 +142,9 @@ export function BookingPage({
   const [time, setTime] = useState<string | null>(null);
   const [adults, setAdults] = useState(initialAdults);
   const [children, setChildren] = useState(initialChildren);
-  const [guest, setGuest] = useState({ name: "", phone: "", email: "" });
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   const current = schedule && schedule.date === date ? schedule : null;
   const loading = Boolean(date) && !current;
@@ -217,7 +214,7 @@ export function BookingPage({
 
   const chosenChoice = fields.find((field) => field.type === "Dropdown Selector");
 
-  const submit = async () => {
+  const submit = () => {
     if (!date) {
       setError("Choose a date.");
       return;
@@ -233,16 +230,6 @@ export function BookingPage({
       return;
     }
 
-    if (!guest.name.trim()) {
-      setError("Add your name so we know who is coming.");
-      return;
-    }
-
-    if (!guest.phone.trim() && !guest.email.trim()) {
-      setError("Leave a WhatsApp number or an email so we can confirm.");
-      return;
-    }
-
     const missing = fields.find(
       (field) =>
         field.type !== "Read Only" &&
@@ -255,57 +242,31 @@ export function BookingPage({
       return;
     }
 
-    setSubmitting(true);
     setError(null);
 
-    const detail = fields
-      .filter((field) => field.type !== "Read Only")
-      .map((field) => {
-        const value = (answers[field.name || field.label] ?? "").trim();
-        return value ? `${field.name || field.label}: ${value}` : "";
-      })
-      .filter(Boolean)
-      .join(" · ");
-
+    // Guest details, the coupon and the payment method are collected on the
+    // checkout page. Hand it what was typed here so nothing is retyped.
     try {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug,
-          date,
-          time,
-          adults,
-          children,
-          name: guest.name,
-          email: guest.email,
-          phone: guest.phone,
-          option: option?.name ?? "",
-          notes: [detail, notes.trim()].filter(Boolean).join(" · "),
-        }),
-      });
-      const data = (await response.json()) as {
-        code?: string;
-        paymentUrl?: string | null;
-        error?: string;
-      };
-
-      if (!response.ok || !data.code) {
-        setError(data.error ?? "Could not hold those seats. Try again or message us on WhatsApp.");
-        return;
-      }
-
-      if (data.paymentUrl) {
-        window.location.assign(data.paymentUrl);
-        return;
-      }
-
-      router.push(`/book/confirmed?code=${encodeURIComponent(data.code)}`);
+      window.sessionStorage.setItem(
+        `twr-booking:${slug}`,
+        JSON.stringify({ answers, notes: notes.trim() }),
+      );
     } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setSubmitting(false);
+      // Storage can be blocked; the answers are only a convenience.
     }
+
+    const params = new URLSearchParams({
+      date,
+      time,
+      adults: String(adults),
+      children: String(children),
+    });
+
+    if (option) {
+      params.set("option", option.name);
+    }
+
+    router.push(`/tours/${slug}/checkout?${params.toString()}`);
   };
 
   return (
@@ -417,40 +378,11 @@ export function BookingPage({
 
           <Step number={4} title="Extra details">
             <div className="rounded-xl bg-river-50/70 px-3 py-2.5 text-xs leading-relaxed text-river-700">
-              <span className="font-semibold text-river-900">Good to know</span> — Meet at{" "}
-              {meetingPoint || "the base camp"}. Please arrive 30 minutes before your start time.
+              <span className="font-semibold text-river-900">Good to know</span> — Please arrive
+              latest 15 minutes before your selected start time for registration, preparation and
+              safety briefing.
+              {meetingPoint ? ` Meet at ${meetingPoint}.` : ""}
               {option?.description ? ` ${option.description}` : ""}
-            </div>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-xs font-medium text-river-700">Your name</span>
-                <input
-                  value={guest.name}
-                  onChange={(event) => setGuest({ ...guest, name: event.target.value })}
-                  placeholder="Name on the booking"
-                  className="mt-1 w-full rounded-xl border border-river-200 px-3 py-2.5 text-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-medium text-river-700">WhatsApp number</span>
-                <input
-                  value={guest.phone}
-                  onChange={(event) => setGuest({ ...guest, phone: event.target.value })}
-                  placeholder="+62 …"
-                  className="mt-1 w-full rounded-xl border border-river-200 px-3 py-2.5 text-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200"
-                />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="text-xs font-medium text-river-700">Email (optional)</span>
-                <input
-                  type="email"
-                  value={guest.email}
-                  onChange={(event) => setGuest({ ...guest, email: event.target.value })}
-                  placeholder="you@email.com"
-                  className="mt-1 w-full rounded-xl border border-river-200 px-3 py-2.5 text-sm outline-none focus:border-river-500 focus:ring-2 focus:ring-river-200"
-                />
-              </label>
             </div>
 
             {/* Read Only fields: the label and its text are information for the guest. */}
@@ -576,10 +508,10 @@ export function BookingPage({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting || party < 1}
+            disabled={party < 1}
             className="mt-4 w-full rounded-full bg-river-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-river-700 disabled:opacity-60"
           >
-            {submitting ? "Reserving…" : "Continue to payment"}
+            Continue to payment
           </button>
           <p className="mt-2 text-center text-xs text-river-500">
             Seats are held for 10 minutes while you book.
