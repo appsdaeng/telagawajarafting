@@ -5,7 +5,7 @@ import { formatRupiah, type Tour } from "@/lib/tours";
 
 /**
  * Tour card used on the home page and the tours index.
- * "Book now" carries the tour into the booking widget on the home page.
+ * "Book now" opens that tour's own page, where the options and prices are.
  * The photo is the cover the operator chose in Admin → Tours.
  */
 export async function TourCard({ tour }: { tour: Tour }) {
@@ -90,7 +90,7 @@ export async function TourCard({ tour }: { tour: Tour }) {
             <span className="text-xs">per adult</span>
           </p>
           <Link
-            href={{ pathname: "/", query: { tour: tour.slug }, hash: "book" }}
+            href={`/tours/${tour.slug}`}
             className="rounded-full bg-river-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-river-700"
           >
             Book now
