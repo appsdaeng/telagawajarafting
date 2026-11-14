@@ -13,7 +13,7 @@ const dashedButton =
   "inline-flex items-center gap-1.5 rounded-lg border border-river-200 bg-white px-3 py-2 text-xs font-semibold text-river-800 transition-colors hover:bg-river-50";
 
 const PRICE_TYPES = ["Per person", "Per booking", "Per group"];
-const FIELD_TYPES = ["Text", "Dropdown Selector"];
+const FIELD_TYPES = ["Text", "Dropdown Selector", "Read Only"];
 
 const emptyTier = (): TourTier => ({ name: "", price: 0, min: 1, max: 10, priceType: "Per person" });
 const emptyField = (): TourOptionField => ({
@@ -51,6 +51,10 @@ function nextTier(current: TourTier[]): TourTier {
 
 /** Older options stored "Dropdown", "Number" or "Date"; keep a supported type. */
 function fieldType(type: string): string {
+  if (/read\s*-?\s*only|info|note/i.test(type)) {
+    return "Read Only";
+  }
+
   return /dropdown|select/i.test(type) ? "Dropdown Selector" : "Text";
 }
 
@@ -160,6 +164,8 @@ export function TourOptionForm({
             item.type === "Dropdown Selector"
               ? item.options.map((choice) => choice.trim()).filter(Boolean)
               : [],
+          // A read-only field is information for the guest, never a question.
+          required: item.type === "Read Only" ? false : item.required,
         })),
       active: status === "Active",
     };
@@ -325,7 +331,8 @@ export function TourOptionForm({
           </div>
           <p className="mt-1 text-xs text-river-500">
             A name to identify the field, the label the guest reads (it may run over several lines)
-            and the type: a plain Text box or a Dropdown Selector with one choice per line.
+            and the type: a plain Text box, a Dropdown Selector with one choice per line, or Read
+            Only to show the label as information without asking anything.
           </p>
 
           {fields.length > 0 ? (
@@ -384,6 +391,13 @@ export function TourOptionForm({
                     />
                   </label>
 
+                  {item.type === "Read Only" ? (
+                    <p className="mt-2 rounded-md bg-river-50 px-2.5 py-2 text-xs text-river-600">
+                      Shown to the guest as information — the label is the text they read, and no
+                      answer is collected.
+                    </p>
+                  ) : null}
+
                   {item.type === "Dropdown Selector" ? (
                     <label className="mt-2 block">
                       <span className={labelClass}>Choices</span>
@@ -406,7 +420,9 @@ export function TourOptionForm({
                     <span className="text-xs text-river-400">
                       {item.type === "Dropdown Selector"
                         ? `${item.options.filter((choice) => choice.trim()).length} choice(s)`
-                        : "Guest types the answer"}
+                        : item.type === "Read Only"
+                          ? "Information only"
+                          : "Guest types the answer"}
                     </span>
                     <button
                       type="button"

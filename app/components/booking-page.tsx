@@ -244,7 +244,10 @@ export function BookingPage({
     }
 
     const missing = fields.find(
-      (field) => field.required && !(answers[field.name || field.label] ?? "").trim(),
+      (field) =>
+        field.type !== "Read Only" &&
+        field.required &&
+        !(answers[field.name || field.label] ?? "").trim(),
     );
 
     if (missing) {
@@ -256,6 +259,7 @@ export function BookingPage({
     setError(null);
 
     const detail = fields
+      .filter((field) => field.type !== "Read Only")
       .map((field) => {
         const value = (answers[field.name || field.label] ?? "").trim();
         return value ? `${field.name || field.label}: ${value}` : "";
@@ -449,7 +453,21 @@ export function BookingPage({
               </label>
             </div>
 
-            {fields.map((field) => {
+            {/* Read Only fields: the label is information for the guest. */}
+            {fields
+              .filter((field) => field.type === "Read Only")
+              .map((field) => (
+                <p
+                  key={field.name || field.label}
+                  className="mt-3 rounded-xl bg-river-50 px-3 py-2.5 text-xs leading-relaxed text-river-700"
+                >
+                  {field.label || field.name}
+                </p>
+              ))}
+
+            {fields
+              .filter((field) => field.type !== "Read Only")
+              .map((field) => {
               const key = field.name || field.label;
               const value = answers[key] ?? "";
 

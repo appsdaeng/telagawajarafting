@@ -204,16 +204,20 @@ function readOptionFields(value: unknown): TourOptionField[] {
   return value
     .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
     .map((item) => {
-      const type = /dropdown|select|choice/i.test(plainText(item.type, 40))
-        ? "Dropdown Selector"
-        : "Text";
+      const rawType = plainText(item.type, 40);
+      const type = /read\s*-?\s*only|info|note/i.test(rawType)
+        ? "Read Only"
+        : /dropdown|select|choice/i.test(rawType)
+          ? "Dropdown Selector"
+          : "Text";
 
       return {
         name: plainText(item.name, 40),
         label: multilineText(item.label, 300),
         type,
         options: type === "Dropdown Selector" ? readChoices(item.options) : [],
-        required: item.required === true || item.required === "true",
+        // A read-only field is information for the guest, never a question.
+        required: type === "Read Only" ? false : item.required === true || item.required === "true",
       };
     })
     .filter((field) => field.label || field.name)
