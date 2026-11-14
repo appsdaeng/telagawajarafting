@@ -211,9 +211,21 @@ export function TourAvailability({
 
                   {active ? (
                     <a
-                      href={`/?tour=${encodeURIComponent(tourSlug)}&option=${encodeURIComponent(
+                      href={`/tours/${encodeURIComponent(tourSlug)}/book?option=${encodeURIComponent(
                         option.name,
-                      )}&date=${date}&adults=${adults}&children=${children}#book`}
+                      )}&date=${date}&adults=${adults}&children=${children}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(event) => {
+                        // The booking opens in its own window so the guest keeps
+                        // the tour page exactly where they left it.
+                        event.preventDefault();
+                        window.open(
+                          event.currentTarget.href,
+                          "tour-booking",
+                          "popup=yes,width=1080,height=920",
+                        );
+                      }}
                       className="mt-3 block rounded-full bg-river-600 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-river-700"
                     >
                       Continue
