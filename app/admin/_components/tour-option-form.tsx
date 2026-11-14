@@ -19,6 +19,7 @@ const emptyTier = (): TourTier => ({ name: "", price: 0, min: 1, max: 10, priceT
 const emptyField = (): TourOptionField => ({
   name: "",
   label: "",
+  text: "",
   type: "Text",
   options: [],
   required: true,
@@ -63,6 +64,7 @@ function readFields(list: TourOptionField[] | undefined): TourOptionField[] {
   return (list ?? []).filter(Boolean).map((item) => ({
     name: item.name ?? "",
     label: item.label ?? "",
+    text: item.text ?? "",
     type: fieldType(item.type ?? ""),
     options: Array.isArray(item.options) ? item.options : [],
     required: item.required !== false,
@@ -155,11 +157,12 @@ export function TourOptionForm({
       field: keptTiers[0]?.priceType ?? "",
       tiers: keptTiers,
       fields: fields
-        .filter((item) => item.label.trim() || item.name.trim())
+        .filter((item) => item.label.trim() || (item.text ?? "").trim() || item.name.trim())
         .map((item) => ({
           ...item,
           name: item.name.trim(),
           label: item.label.trim(),
+          text: (item.text ?? "").trim(),
           options:
             item.type === "Dropdown Selector"
               ? item.options.map((choice) => choice.trim()).filter(Boolean)
@@ -330,26 +333,17 @@ export function TourOptionForm({
             </button>
           </div>
           <p className="mt-1 text-xs text-river-500">
-            A name to identify the field, the label the guest reads (it may run over several lines)
-            and the type: a plain Text box, a Dropdown Selector with one choice per line, or Read
-            Only to show the label as information without asking anything.
+            The type decides how the guest answers: a plain Text box, a Dropdown Selector with one
+            choice per line, or Read Only to show the text as information without asking anything.
+            Label is the short heading on one line; the text under it is what the guest reads and
+            may run over several lines.
           </p>
 
           {fields.length > 0 ? (
             <ul className="mt-2 space-y-2">
               {fields.map((item, index) => (
                 <li key={index} className="rounded-lg border border-river-200 p-3">
-                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem_8rem]">
-                    <label className="block">
-                      <span className={labelClass}>Name</span>
-                      <input
-                        value={item.name}
-                        onChange={(event) => patchField(index, { name: event.target.value })}
-                        placeholder="pickupHotel"
-                        className={field}
-                      />
-                    </label>
-
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,12rem)_8rem]">
                     <label className="block">
                       <span className={labelClass}>Type</span>
                       <select
@@ -382,19 +376,37 @@ export function TourOptionForm({
 
                   <label className="mt-2 block">
                     <span className={labelClass}>Label</span>
-                    <textarea
+                    <input
                       value={item.label}
                       onChange={(event) => patchField(index, { label: event.target.value })}
-                      rows={2}
-                      placeholder="Hotel name for pickup. Use more lines when the question is long."
+                      placeholder="Hotel name"
                       className={field}
                     />
+                    <span className="mt-1 block text-xs text-river-500">
+                      The short heading on the booking page. One line.
+                    </span>
+                  </label>
+
+                  <label className="mt-2 block">
+                    <span className={labelClass}>Text showing to the customer</span>
+                    <textarea
+                      value={item.text ?? ""}
+                      onChange={(event) => patchField(index, { text: event.target.value })}
+                      rows={3}
+                      placeholder={
+                        "What the guest should read here. Use more lines\nwhen the text is long."
+                      }
+                      className={field}
+                    />
+                    <span className="mt-1 block text-xs text-river-500">
+                      Shown under the label on the booking page. It may run over several lines.
+                    </span>
                   </label>
 
                   {item.type === "Read Only" ? (
                     <p className="mt-2 rounded-md bg-river-50 px-2.5 py-2 text-xs text-river-600">
-                      Shown to the guest as information — the label is the text they read, and no
-                      answer is collected.
+                      Shown to the guest as information — the text is what they read, and no answer
+                      is collected.
                     </p>
                   ) : null}
 

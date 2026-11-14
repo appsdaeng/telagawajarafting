@@ -453,16 +453,21 @@ export function BookingPage({
               </label>
             </div>
 
-            {/* Read Only fields: the label is information for the guest. */}
+            {/* Read Only fields: the label and its text are information for the guest. */}
             {fields
               .filter((field) => field.type === "Read Only")
               .map((field) => (
-                <p
+                <div
                   key={field.name || field.label}
                   className="mt-3 rounded-xl bg-river-50 px-3 py-2.5 text-xs leading-relaxed text-river-700"
                 >
-                  {field.label || field.name}
-                </p>
+                  {field.label ? (
+                    <span className="block font-semibold text-river-900">{field.label}</span>
+                  ) : null}
+                  {field.text ? (
+                    <span className="mt-0.5 block whitespace-pre-line">{field.text}</span>
+                  ) : null}
+                </div>
               ))}
 
             {fields
@@ -477,6 +482,11 @@ export function BookingPage({
                     {field.label || field.name}
                     {field.required ? <span className="text-red-600"> *</span> : null}
                   </span>
+                  {field.text ? (
+                    <span className="mb-1 block whitespace-pre-line text-xs leading-relaxed text-river-500">
+                      {field.text}
+                    </span>
+                  ) : null}
 
                   {field.type === "Dropdown Selector" ? (
                     <select
